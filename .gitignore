@@ -1,0 +1,20 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Diagnostic & Test scripts
+test_*.ts
+debug_*.ts
+check_*.ts
+final_verify.ts
+src/supabase_schema_check.ts
+src/supabase-types-check.ts
+
+# Misc
+.antigravity/
+brain/
