@@ -40,13 +40,21 @@ export default function Orders({ profile }: OrdersProps) {
   const fetchOrders = async () => {
     const { data } = await supabase
       .from('orders')
-      .select('*, customer:customers(name)')
+      .select('*, customer:customers(name, address, phone), items:order_items(id, quantity, price_at_time, product:products(name))')
       .order('created_at', { ascending: false });
 
     if (data) {
       const formattedData = data.map((o: any) => ({
         ...o,
-        customer_name: o.customer?.name || null
+        customer_name: o.customer?.name || null,
+        customer_address: o.customer?.address || null,
+        customer_phone: o.customer?.phone || null,
+        items: o.items?.map((item: any) => ({
+          id: item.id,
+          quantity: item.quantity,
+          price_at_time: item.price_at_time,
+          product_name: item.product?.name || 'Produto Desconhecido'
+        })) || []
       }));
       setOrders(formattedData);
     }
@@ -237,8 +245,45 @@ export default function Orders({ profile }: OrdersProps) {
                     <span className="text-xs text-zinc-400 font-medium">• {new Date(order.created_at).toLocaleString('pt-BR')}</span>
                   </div>
                   <p className="text-zinc-600 font-medium">{order.customer_name || 'Consumidor Final'}</p>
+
+                  {/* Address and Phone Block */}
+                  {order.customer_address && (
+                    <p className="text-sm text-zinc-500 mt-1 flex flex-col md:flex-row md:items-center gap-1">
+                      <span>📍 {order.customer_address}</span>
+                      {order.customer_phone && (
+                        <a
+                          href={`https://wa.me/55${order.customer_phone.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-emerald-600 hover:text-emerald-700 font-medium text-xs ml-0 md:ml-2 inline-flex items-center gap-1 shrink-0"
+                          title="Chamar no WhatsApp"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          📱 WhatsApp
+                        </a>
+                      )}
+                    </p>
+                  )}
+
+                  {/* Items List */}
+                  {order.items && order.items.length > 0 && (
+                    <div className="mt-3 bg-zinc-50 rounded-xl p-3 border border-zinc-100">
+                      <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Itens do Pedido</p>
+                      <ul className="space-y-1">
+                        {order.items.map(item => (
+                          <li key={item.id} className="text-sm text-zinc-700 flex items-center gap-2">
+                            <span className="font-bold text-zinc-900 bg-white px-2 py-0.5 rounded border border-zinc-200 text-xs">
+                              {item.quantity}x
+                            </span>
+                            {item.product_name}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
                   {profile?.role !== 'entregador' && (
-                    <p className="text-emerald-600 font-bold text-lg mt-1">{formatCurrency(order.total_amount)} <span className="text-xs text-zinc-400 font-normal">({order.payment_method})</span></p>
+                    <p className="text-emerald-600 font-bold text-lg mt-3">{formatCurrency(order.total_amount)} <span className="text-xs text-zinc-400 font-normal">({order.payment_method})</span></p>
                   )}
                 </div>
               </div>

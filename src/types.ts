@@ -17,10 +17,20 @@ export interface Customer {
   loyalty_count: number;
 }
 
+export interface OrderItem {
+  id: number;
+  product_name: string;
+  quantity: number;
+  price_at_time: number;
+}
+
 export interface Order {
   id: number;
   customer_id: number;
   customer_name?: string;
+  customer_address?: string;
+  customer_phone?: string;
+  items?: OrderItem[];
   total_amount: number;
   payment_method: string;
   payment_status: string;
