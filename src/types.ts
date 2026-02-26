@@ -20,6 +20,7 @@ export interface Customer {
 export interface OrderItem {
   id: number;
   product_name: string;
+  product_category: string;
   quantity: number;
   price_at_time: number;
 }

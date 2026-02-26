@@ -40,7 +40,7 @@ export default function Orders({ profile }: OrdersProps) {
   const fetchOrders = async () => {
     const { data } = await supabase
       .from('orders')
-      .select('*, customer:customers(name, address, phone), items:order_items(id, quantity, price_at_time, product:products(name))')
+      .select('*, customer:customers(name, address, phone), items:order_items(id, quantity, price_at_time, product:products(name, category))')
       .order('created_at', { ascending: false });
 
     if (data) {
@@ -53,7 +53,8 @@ export default function Orders({ profile }: OrdersProps) {
           id: item.id,
           quantity: item.quantity,
           price_at_time: item.price_at_time,
-          product_name: item.product?.name || 'Produto Desconhecido'
+          product_name: item.product?.name || 'Produto Desconhecido',
+          product_category: item.product?.category || ''
         })) || []
       }));
       setOrders(formattedData);
@@ -275,7 +276,9 @@ export default function Orders({ profile }: OrdersProps) {
                             <span className="font-bold text-zinc-900 bg-white px-2 py-0.5 rounded border border-zinc-200 text-xs">
                               {item.quantity}x
                             </span>
-                            {item.product_name}
+                            <span className="truncate">
+                              {item.product_category ? `${item.product_category} ${item.product_name}` : item.product_name}
+                            </span>
                           </li>
                         ))}
                       </ul>
