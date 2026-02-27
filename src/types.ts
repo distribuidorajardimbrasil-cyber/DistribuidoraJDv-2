@@ -31,11 +31,13 @@ export interface Order {
   customer_name?: string;
   customer_address?: string;
   customer_phone?: string;
+  customer_notes?: string;
   items?: OrderItem[];
   total_amount: number;
   payment_method: string;
   payment_status: string;
   delivery_status: string;
+  notes?: string;
   created_at: string;
 }
 

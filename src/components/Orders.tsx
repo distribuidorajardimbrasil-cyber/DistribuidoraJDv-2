@@ -40,7 +40,7 @@ export default function Orders({ profile }: OrdersProps) {
   const fetchOrders = async () => {
     const { data } = await supabase
       .from('orders')
-      .select('*, customer:customers(name, address, phone), items:order_items(id, quantity, price_at_time, product:products(name, category))')
+      .select('*, customer:customers(name, address, phone, notes), items:order_items(id, quantity, price_at_time, product:products(name, category))')
       .order('created_at', { ascending: false });
 
     if (data) {
@@ -49,6 +49,7 @@ export default function Orders({ profile }: OrdersProps) {
         customer_name: o.customer?.name || null,
         customer_address: o.customer?.address || null,
         customer_phone: o.customer?.phone || null,
+        customer_notes: o.customer?.notes || null,
         items: o.items?.map((item: any) => ({
           id: item.id,
           quantity: item.quantity,
@@ -165,8 +166,14 @@ export default function Orders({ profile }: OrdersProps) {
   };
 
   const filteredOrders = orders.filter(o => {
-    if (profile?.role === 'entregador' && o.delivery_status === 'Entregue') {
-      return false;
+    if (profile?.role === 'entregador') {
+      // Drivers only see orders when filter is 'Todos' or they are tracking delivered/active
+      if (filterStatus === 'Ativos' && o.delivery_status === 'Entregue') {
+        return false;
+      }
+      if (filterStatus === 'Histórico' && o.delivery_status !== 'Entregue') {
+        return false;
+      }
     }
 
     const matchesSearch = (o.customer_name || 'Consumidor Final').toLowerCase().includes(searchTerm.toLowerCase()) || o.id.toString().includes(searchTerm);
@@ -211,25 +218,27 @@ export default function Orders({ profile }: OrdersProps) {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        {profile?.role !== 'entregador' && (
-          <div className="bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm flex items-center gap-3">
-            <Filter className="text-zinc-400" size={20} />
-            <select
-              className="bg-transparent border-none outline-none text-zinc-900 font-medium"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-            >
-              <option value="Ativos">Pedidos Ativos</option>
-              <option value="Histórico">Histórico (Entregues)</option>
-              <option value="Todos">Todos os Pedidos</option>
-              <option value="Pendente">Apenas Pendentes</option>
-              <option value="Pago">Apenas Pagos</option>
-              <option value="Em preparo">Em preparo</option>
-              <option value="Saiu para entrega">Saiu para entrega</option>
-              <option value="Entregue">Apenas Entregues</option>
-            </select>
-          </div>
-        )}
+        <div className="bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm flex items-center gap-3">
+          <Filter className="text-zinc-400" size={20} />
+          <select
+            className="bg-transparent border-none outline-none text-zinc-900 font-medium"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
+            <option value="Ativos">Pedidos Ativos</option>
+            <option value="Histórico">Histórico (Entregues)</option>
+            {profile?.role !== 'entregador' && (
+              <>
+                <option value="Todos">Todos os Pedidos</option>
+                <option value="Pendente">Apenas Pendentes</option>
+                <option value="Pago">Apenas Pagos</option>
+                <option value="Em preparo">Em preparo</option>
+                <option value="Saiu para entrega">Saiu para entrega</option>
+                <option value="Entregue">Apenas Entregues</option>
+              </>
+            )}
+          </select>
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -247,7 +256,6 @@ export default function Orders({ profile }: OrdersProps) {
                   </div>
                   <p className="text-zinc-600 font-medium">{order.customer_name || 'Consumidor Final'}</p>
 
-                  {/* Address and Phone Block */}
                   {order.customer_address && (
                     <p className="text-sm text-zinc-500 mt-1 flex flex-col md:flex-row md:items-center gap-1">
                       <span>📍 {order.customer_address}</span>
@@ -264,6 +272,20 @@ export default function Orders({ profile }: OrdersProps) {
                         </a>
                       )}
                     </p>
+                  )}
+
+                  {/* Customer Notes */}
+                  {order.customer_notes && (
+                    <div className="mt-2 bg-amber-50 border border-amber-200 text-amber-800 text-xs p-2 rounded-lg inline-block">
+                      <strong>Obs. Cliente:</strong> {order.customer_notes}
+                    </div>
+                  )}
+
+                  {/* Order Notes */}
+                  {order.notes && (
+                    <div className="mt-2 bg-blue-50 border border-blue-200 text-blue-800 text-xs p-2 rounded-lg inline-block md:ml-2">
+                      <strong>Obs. Pedido:</strong> {order.notes}
+                    </div>
                   )}
 
                   {/* Items List */}

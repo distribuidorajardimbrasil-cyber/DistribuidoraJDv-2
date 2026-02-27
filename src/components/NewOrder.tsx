@@ -26,6 +26,7 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
   const [paymentMethod, setPaymentMethod] = useState('Pix');
   const [paymentStatus, setPaymentStatus] = useState('Pago');
   const [deliveryStatus, setDeliveryStatus] = useState('Em preparo');
+  const [orderNotes, setOrderNotes] = useState('');
 
   useEffect(() => {
     fetchProducts();
@@ -96,7 +97,8 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
         total_amount: total,
         payment_method: paymentMethod,
         payment_status: paymentStatus,
-        delivery_status: deliveryStatus
+        delivery_status: deliveryStatus,
+        notes: orderNotes
       }])
       .select('id')
       .single();
@@ -191,8 +193,54 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* Left: Product Selection */}
+      {/* Left: Client & Product Selection */}
       <div className="lg:col-span-2 space-y-6">
+        {/* Client Selection */}
+        <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm">
+          <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <User size={20} className="text-emerald-600" />
+            Selecionar Cliente (Obrigatório)
+          </h3>
+          <div className="relative mb-4">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+            <input
+              type="text"
+              placeholder="Buscar cliente..."
+              className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-100 rounded-xl outline-none focus:border-emerald-500"
+              value={customerSearch}
+              onChange={e => setCustomerSearch(e.target.value)}
+            />
+          </div>
+
+          {selectedCustomer ? (
+            <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold">
+                  {selectedCustomer.name.charAt(0)}
+                </div>
+                <div>
+                  <p className="font-bold text-emerald-900">{selectedCustomer.name}</p>
+                  <p className="text-xs text-emerald-700">{selectedCustomer.phone}</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedCustomer(null)} className="text-emerald-700 hover:text-red-600 font-bold text-xs">Remover</button>
+            </div>
+          ) : (
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {filteredCustomers.slice(0, 5).map(customer => (
+                <button
+                  key={customer.id}
+                  onClick={() => setSelectedCustomer(customer)}
+                  className="flex-shrink-0 p-3 bg-zinc-50 border border-zinc-100 rounded-xl hover:bg-zinc-100 transition-all text-sm font-medium"
+                >
+                  {customer.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Product Selection */}
         <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm">
           <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
             <ShoppingBag size={20} className="text-emerald-600" />
@@ -234,50 +282,6 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
               </button>
             ))}
           </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm">
-          <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-            <User size={20} className="text-emerald-600" />
-            Selecionar Cliente (Opcional)
-          </h3>
-          <div className="relative mb-4">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-            <input
-              type="text"
-              placeholder="Buscar cliente..."
-              className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-100 rounded-xl outline-none focus:border-emerald-500"
-              value={customerSearch}
-              onChange={e => setCustomerSearch(e.target.value)}
-            />
-          </div>
-
-          {selectedCustomer ? (
-            <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold">
-                  {selectedCustomer.name.charAt(0)}
-                </div>
-                <div>
-                  <p className="font-bold text-emerald-900">{selectedCustomer.name}</p>
-                  <p className="text-xs text-emerald-700">{selectedCustomer.phone}</p>
-                </div>
-              </div>
-              <button onClick={() => setSelectedCustomer(null)} className="text-emerald-700 hover:text-red-600 font-bold text-xs">Remover</button>
-            </div>
-          ) : (
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {filteredCustomers.slice(0, 5).map(customer => (
-                <button
-                  key={customer.id}
-                  onClick={() => setSelectedCustomer(customer)}
-                  className="flex-shrink-0 p-3 bg-zinc-50 border border-zinc-100 rounded-xl hover:bg-zinc-100 transition-all text-sm font-medium"
-                >
-                  {customer.name}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
@@ -362,9 +366,20 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
               </div>
             </div>
 
+            <div>
+              <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Observação (Opcional)</label>
+              <textarea
+                className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-emerald-500 text-sm resize-none"
+                placeholder="Ex: Troco para 50, entregar na portaria..."
+                rows={2}
+                value={orderNotes}
+                onChange={e => setOrderNotes(e.target.value)}
+              />
+            </div>
+
             <button
               onClick={handleSubmit}
-              disabled={cart.length === 0}
+              disabled={cart.length === 0 || !selectedCustomer}
               className="w-full py-4 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all disabled:opacity-50 disabled:shadow-none mt-4 flex items-center justify-center gap-2"
             >
               <CheckCircle size={20} />
