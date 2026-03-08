@@ -9,7 +9,8 @@ import {
   Menu,
   X,
   LogOut,
-  ShieldAlert
+  ShieldAlert,
+  Truck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Profile } from './types';
@@ -24,10 +25,11 @@ import Finance from './components/Finance';
 import NewOrder from './components/NewOrder';
 import Login from './components/Login';
 import Team from './components/Team';
+import Deliverymen from './components/Deliverymen';
 
 export default function App() {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'customers' | 'orders' | 'finance' | 'new-order' | 'team'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'customers' | 'orders' | 'finance' | 'new-order' | 'team' | 'deliverymen'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Set default tab when profile loads
@@ -91,6 +93,7 @@ export default function App() {
     { id: 'customers', label: 'Clientes', icon: Users },
     { id: 'finance', label: 'Financeiro', icon: DollarSign },
     { id: 'team', label: 'Equipe', icon: ShieldAlert },
+    { id: 'deliverymen', label: 'Entregadores', icon: Truck },
   ];
 
   if (!isAdmin) {
@@ -108,6 +111,7 @@ export default function App() {
       case 'finance': return isAdmin ? <Finance /> : null;
       case 'new-order': return isAdmin ? <NewOrder onComplete={() => setActiveTab('orders')} /> : null;
       case 'team': return isAdmin ? <Team /> : null;
+      case 'deliverymen': return isAdmin ? <Deliverymen /> : null;
       default: return isAdmin ? <Dashboard onNavigate={setActiveTab} /> : <Orders profile={profile} />;
     }
   };
@@ -116,7 +120,7 @@ export default function App() {
     <div className="min-h-screen bg-zinc-50 flex flex-col md:flex-row font-sans text-zinc-900">
       {/* Mobile Header */}
       <div className="md:hidden bg-white border-b border-zinc-200 p-4 flex items-center justify-between sticky top-0 z-50">
-        <h1 className="font-bold text-emerald-600 text-xl">Distribuidora JD</h1>
+        <img src="/logo.png" alt="Distribuidora JD" className="h-12 w-auto object-contain mix-blend-multiply" />
         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-zinc-600 hover:bg-zinc-100 rounded-lg">
           {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
@@ -125,7 +129,7 @@ export default function App() {
       {/* Sidebar - Hide entirely on desktop if Entregador, but we need navigation still. Let's keep a minimal one. */}
       {(!isAdmin && window.innerWidth >= 768) ? (
         <aside className="w-16 bg-white border-r border-zinc-200 flex flex-col items-center py-6 gap-6">
-          <div className="w-10 h-10 bg-emerald-100 text-emerald-600 flex items-center justify-center rounded-xl font-bold">JD</div>
+          <img src="/logo.png" alt="JD" className="w-12 h-12 object-contain mix-blend-multiply" />
           <button title="Sair" onClick={handleLogout} className="mt-auto p-3 text-red-500 hover:bg-red-50 rounded-xl">
             <LogOut size={20} />
           </button>
@@ -139,7 +143,7 @@ export default function App() {
               className={`fixed md:static inset-y-0 left-0 w-64 bg-white border-r border-zinc-200 z-40 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
             >
               <div className="p-6 hidden md:block">
-                <h1 className="font-bold text-emerald-600 text-2xl tracking-tight">Distribuidora JD</h1>
+                <img src="/logo.png" alt="Distribuidora JD" className="h-20 -ml-2 w-auto object-contain mb-1 mix-blend-multiply drop-shadow-sm" />
                 <p className="text-xs text-zinc-400 mt-1 uppercase tracking-widest font-semibold">{isAdmin ? 'Gestão Interna' : 'Acesso Entregador'}</p>
               </div>
 

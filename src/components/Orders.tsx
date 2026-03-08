@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Search, Clock, Truck, CheckCircle2, MoreVertical, Filter, Trash2, ShieldAlert } from 'lucide-react';
-import { Profile, Order, Category } from '../types';
+import { ShoppingCart, Search, Clock, Truck, CheckCircle2, MoreVertical, Filter, Trash2, ShieldAlert, Edit2, Plus, Minus, X } from 'lucide-react';
+import { Profile, Order, Category, Product } from '../types';
 import { supabase } from '../lib/supabase';
 
 const DEFAULT_CATEGORIES: Category[] = [
@@ -23,10 +23,23 @@ export default function Orders({ profile }: OrdersProps) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [editCart, setEditCart] = useState<{ product: Product, quantity: number, customPrice: number | string }[]>([]);
+  const [productSearch, setProductSearch] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
   useEffect(() => {
     fetchOrders();
     fetchCategories();
+    fetchProducts();
   }, []);
+
+  const fetchProducts = async () => {
+    const { data } = await supabase.from('products').select('*');
+    if (data) setProducts(data as Product[]);
+  };
 
   const fetchCategories = async () => {
     const { data } = await supabase.from('categories').select('*');
@@ -40,7 +53,7 @@ export default function Orders({ profile }: OrdersProps) {
   const fetchOrders = async () => {
     const { data } = await supabase
       .from('orders')
-      .select('*, customer:customers(name, address, phone, notes), items:order_items(id, quantity, price_at_time, product:products(name, category))')
+      .select('*, customer:customers(name, address, phone, notes), items:order_items(id, product_id, quantity, price_at_time, product:products(name, category, price_sell, stock_quantity))')
       .order('created_at', { ascending: false });
 
     if (data) {
@@ -52,10 +65,13 @@ export default function Orders({ profile }: OrdersProps) {
         customer_notes: o.customer?.notes || null,
         items: o.items?.map((item: any) => ({
           id: item.id,
+          product_id: item.product_id,
           quantity: item.quantity,
           price_at_time: item.price_at_time,
           product_name: item.product?.name || 'Produto Desconhecido',
-          product_category: item.product?.category || ''
+          product_category: item.product?.category || '',
+          product_stock: item.product?.stock_quantity || 0,
+          product_price: item.product?.price_sell || 0
         })) || []
       }));
       setOrders(formattedData);
@@ -68,36 +84,24 @@ export default function Orders({ profile }: OrdersProps) {
       return;
     }
 
-    // 1. Check if we are changing payment to "Pago"
-    if (type === 'payment' && value === 'Pago') {
-      const { data: order } = await supabase.from('orders').select('*').eq('id', id).single();
-      if (order && order.payment_status !== 'Pago') {
-        // Fetch items
+    const { data: order } = await supabase.from('orders').select('*').eq('id', id).single();
+    if (!order) return;
+
+    if (type === 'payment') {
+      if (value === 'Pago' && order.payment_status !== 'Pago') {
         const { data: items } = await supabase.from('order_items').select('product_id, quantity').eq('order_id', id);
 
         const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-        const allowedBrandsNormalized = ['GAMBOA', 'INDAIA', 'ITAGY', 'ITAGI', 'JORDAO', 'MAIORCA'];
+        const allowedBrands = ['GAMBOA', 'INDAIA', 'ITAGY', 'ITAGI', 'JORDAO', 'MAIORCA'];
 
         let waterCount = 0;
         if (items) {
           for (const item of items) {
             const { data: prod } = await supabase.from('products').select('name, stock_quantity, category').eq('id', item.product_id).single();
             if (prod) {
-              const prodName = prod.name || "";
-              const prodCategory = prod.category || "";
-              const searchString = normalize(`${prodName} ${prodCategory}`);
-
-              const allowedBrands = ['GAMBOA', 'INDAIA', 'ITAGY', 'ITAGI', 'JORDAO', 'MAIORCA'];
+              const searchString = normalize(`${prod.name || ""} ${prod.category || ""}`);
               const isAllowedBrand = allowedBrands.some(brand => searchString.includes(brand));
-
-              const hasAgua = searchString.includes("AGUA");
-              const has20L =
-                searchString.includes("20L") ||
-                searchString.includes("20 L") ||
-                searchString.includes("20LITROS") ||
-                searchString.includes("20 LITROS");
-
-              const isWater20L = hasAgua && has20L;
+              const isWater20L = searchString.includes("AGUA") && (searchString.includes("20L") || searchString.includes("20 L") || searchString.includes("20LITROS") || searchString.includes("20 LITROS"));
 
               if (isAllowedBrand && isWater20L) {
                 waterCount += item.quantity;
@@ -125,19 +129,72 @@ export default function Orders({ profile }: OrdersProps) {
           }
         }
 
+        // Cleanup stale dupes just in case
+        await supabase.from('transactions').delete().like('description', `%Pedido #${id}`);
+
         // Transaction
         await supabase.from('transactions').insert([{
           type: 'income',
           amount: order.total_amount,
           description: `Pagamento Pedido #${id}`
         }]);
+      } else if (value === 'Pendente' && order.payment_status === 'Pago') {
+        // REVERSAL LOGIC
+        const { data: items } = await supabase.from('order_items').select('product_id, quantity').eq('order_id', id);
+
+        const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+        const allowedBrands = ['GAMBOA', 'INDAIA', 'ITAGY', 'ITAGI', 'JORDAO', 'MAIORCA'];
+
+        let waterCount = 0;
+        if (items) {
+          for (const item of items) {
+            const { data: prod } = await supabase.from('products').select('name, stock_quantity, category').eq('id', item.product_id).single();
+            if (prod) {
+              const searchString = normalize(`${prod.name || ""} ${prod.category || ""}`);
+              const isAllowedBrand = allowedBrands.some(brand => searchString.includes(brand));
+              const isWater20L = searchString.includes("AGUA") && (searchString.includes("20L") || searchString.includes("20 L") || searchString.includes("20LITROS") || searchString.includes("20 LITROS"));
+
+              if (isAllowedBrand && isWater20L) {
+                waterCount += item.quantity;
+              }
+
+              // Restore stock
+              await supabase.from('products').update({ stock_quantity: (prod.stock_quantity || 0) + item.quantity }).eq('id', item.product_id);
+
+              // Movement
+              await supabase.from('stock_movements').insert([{
+                product_id: item.product_id,
+                type: 'in',
+                quantity: item.quantity,
+                reason: 'Reversão de Venda (Pendente)'
+              }]);
+            }
+          }
+        }
+
+        // Loyalty
+        if (order.customer_id) {
+          const { data: cData } = await supabase.from('customers').select('loyalty_count').eq('id', order.customer_id).single();
+          if (cData) {
+            await supabase.from('customers').update({ loyalty_count: Math.max(0, (cData.loyalty_count || 0) - waterCount) }).eq('id', order.customer_id);
+          }
+        }
+
+        // Remove Transaction
+        await supabase.from('transactions').delete().like('description', `%Pedido #${id}`);
       }
     }
 
     // 2. Perform the update
     const updates: any = {};
-    if (type === 'payment') updates.payment_status = value;
-    else updates.delivery_status = value;
+    if (type === 'payment') {
+      updates.payment_status = value;
+    } else {
+      updates.delivery_status = value;
+      if (profile?.role === 'entregador' && (value === 'Saiu para entrega' || value === 'Entregue')) {
+        updates.deliveryman_id = profile.id;
+      }
+    }
 
     const { error } = await supabase.from('orders').update(updates).eq('id', id);
     if (!error) fetchOrders();
@@ -163,6 +220,73 @@ export default function Orders({ profile }: OrdersProps) {
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const openEditModal = (order: Order) => {
+    setEditingOrder(order);
+    const initialCart = order.items?.map((i: any) => {
+      const p = products.find(prod => prod.id === i.product_id) || {
+        id: i.product_id, name: i.product_name, category: i.product_category, price_sell: i.product_price, stock_quantity: i.product_stock
+      } as unknown as Product;
+      return { product: p, quantity: i.quantity, customPrice: i.price_at_time };
+    }) || [];
+    setEditCart(initialCart);
+    setProductSearch('');
+    setIsEditModalOpen(true);
+  };
+
+  const saveEditOrder = async () => {
+    if (!editingOrder || editCart.length === 0) return;
+    setIsSavingEdit(true);
+
+    const newTotal = editCart.reduce((acc, item) => acc + ((Number(item.customPrice) || 0) * item.quantity), 0);
+
+    try {
+      // 1. Delete old items
+      await supabase.from('order_items').delete().eq('order_id', editingOrder.id);
+
+      // 2. Insert new items
+      for (const item of editCart) {
+        await supabase.from('order_items').insert([{
+          order_id: editingOrder.id,
+          product_id: item.product.id,
+          quantity: item.quantity,
+          price_at_time: Number(item.customPrice) || 0
+        }]);
+      }
+
+      // 3. Update total amount on order
+      await supabase.from('orders').update({ total_amount: newTotal }).eq('id', editingOrder.id);
+
+      setIsEditModalOpen(false);
+      fetchOrders();
+    } catch (err) {
+      console.error("Erro ao editar pedido:", err);
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const addToEditCart = (product: Product) => {
+    const existing = editCart.find(item => item.product.id === product.id);
+    if (existing) {
+      setEditCart(editCart.map(item => item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item));
+    } else {
+      setEditCart([...editCart, { product, quantity: 1, customPrice: product.price_sell }]);
+    }
+  };
+
+  const removeFromEditCart = (productId: number) => {
+    const existing = editCart.find(item => item.product.id === productId);
+    if (existing && existing.quantity > 1) {
+      setEditCart(editCart.map(item => item.product.id === productId ? { ...item, quantity: item.quantity - 1 } : item));
+    } else {
+      setEditCart(editCart.filter(item => item.product.id !== productId));
+    }
+  };
+
+  const updateEditCustomPrice = (productId: number, val: string) => {
+    setEditCart(editCart.map(item => item.product.id === productId ? { ...item, customPrice: val } : item));
   };
 
   const filteredOrders = orders.filter(o => {
@@ -346,6 +470,15 @@ export default function Orders({ profile }: OrdersProps) {
 
                 {profile?.role !== 'entregador' && (
                   <div className="flex items-center gap-1 ml-2 border-l border-zinc-100 pl-3">
+                    {order.payment_status === 'Pendente' && (
+                      <button
+                        onClick={() => openEditModal(order)}
+                        className="p-2 text-zinc-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                        title="Editar Pedido"
+                      >
+                        <Edit2 size={20} />
+                      </button>
+                    )}
                     <button
                       onClick={() => { setSelectedOrder(order); setIsDeleteModalOpen(true); }}
                       className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
@@ -397,6 +530,111 @@ export default function Orders({ profile }: OrdersProps) {
               >
                 Cancelar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Order Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50">
+              <div>
+                <h3 className="text-xl font-bold flex items-center gap-2">
+                  <Edit2 size={20} className="text-emerald-600" />
+                  Editar Pedido #{editingOrder?.id}
+                </h3>
+                <p className="text-sm text-zinc-500 font-medium mt-1">{editingOrder?.customer_name || 'Consumidor Final'}</p>
+              </div>
+              <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-zinc-200 rounded-full transition-colors text-zinc-400">
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Product Selection */}
+              <div>
+                <h4 className="font-bold mb-4 text-zinc-800">Adicionar Produtos</h4>
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
+                  <input
+                    type="text"
+                    placeholder="Buscar produto..."
+                    className="w-full pl-10 pr-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-emerald-500 text-sm"
+                    value={productSearch}
+                    onChange={e => setProductSearch(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                  {products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).map(product => (
+                    <button
+                      key={product.id}
+                      onClick={() => addToEditCart(product)}
+                      className="w-full flex items-center justify-between p-3 bg-white border border-zinc-100 rounded-xl hover:border-emerald-300 hover:bg-emerald-50 transition-colors text-left"
+                    >
+                      <div>
+                        <p className="font-bold text-sm text-zinc-800">{product.name}</p>
+                        <p className="text-[10px] text-zinc-400 font-bold uppercase">{product.category}</p>
+                      </div>
+                      <span className="text-xs font-bold text-emerald-600">R$ {product.price_sell.toFixed(2)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Editable Cart */}
+              <div className="flex flex-col">
+                <h4 className="font-bold mb-4 text-zinc-800">Itens Atuais do Pedido</h4>
+                <div className="flex-1 space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                  {editCart.map(item => (
+                    <div key={item.product.id} className="flex flex-col gap-2 p-3 bg-zinc-50 border border-zinc-200 rounded-xl">
+                      <div className="flex justify-between items-start">
+                        <p className="font-bold text-sm text-zinc-900">{item.product.name}</p>
+                        <div className="flex items-center gap-2 bg-white rounded-lg border border-zinc-200 p-1">
+                          <button onClick={() => removeFromEditCart(item.product.id)} className="p-1 hover:bg-zinc-100 rounded-md text-zinc-500"><Minus size={14} /></button>
+                          <span className="font-bold text-sm w-4 text-center">{item.quantity}</span>
+                          <button onClick={() => addToEditCart(item.product)} className="p-1 hover:bg-zinc-100 rounded-md text-emerald-600"><Plus size={14} /></button>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-zinc-500 font-bold">Unidade: R$</span>
+                        <input
+                          type="number" step="0.01"
+                          className="w-20 px-2 py-1 text-xs bg-white border border-zinc-200 rounded-lg outline-none focus:border-emerald-500 font-bold text-emerald-700"
+                          value={item.customPrice}
+                          onChange={(e) => updateEditCustomPrice(item.product.id, e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  {editCart.length === 0 && <p className="text-sm text-zinc-400 text-center py-8">Nenhum item no pedido.</p>}
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-zinc-200">
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="font-bold text-zinc-500">Novo Total</span>
+                    <span className="text-xl font-black text-emerald-600">
+                      R$ {editCart.reduce((acc, item) => acc + ((Number(item.customPrice) || 0) * item.quantity), 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setIsEditModalOpen(false)}
+                      className="flex-1 py-3 bg-zinc-100 text-zinc-600 font-bold rounded-xl hover:bg-zinc-200 transition-all"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={saveEditOrder}
+                      disabled={editCart.length === 0 || isSavingEdit}
+                      className="flex-1 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-100 transition-all disabled:opacity-50"
+                    >
+                      {isSavingEdit ? 'Salvando...' : 'Salvar Alterações'}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

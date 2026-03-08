@@ -74,12 +74,19 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         }
       }
 
+      const startDate = `${monthPrefix}-01T00:00:00.000Z`;
+      const nextMonth = parseInt(monthPrefix.substring(5, 7)) + 1;
+      const nextMonthYear = nextMonth > 12 ? parseInt(monthPrefix.substring(0, 4)) + 1 : monthPrefix.substring(0, 4);
+      const nextMonthStr = nextMonth > 12 ? '01' : nextMonth.toString().padStart(2, '0');
+      const endDate = `${nextMonthYear}-${nextMonthStr}-01T00:00:00.000Z`;
+
       // 2. Profit calculation (Paid orders this month)
       const { data: orders } = await supabase
         .from('orders')
         .select('id')
         .eq('payment_status', 'Pago')
-        .like('created_at', `${monthPrefix}%`);
+        .gte('created_at', startDate)
+        .lt('created_at', endDate);
 
       let profitTotal = 0;
       if (orders && orders.length > 0) {
@@ -146,8 +153,8 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     <div className="space-y-8">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Olá, JD! 👋</h2>
-          <p className="text-zinc-500">Aqui está o resumo da sua distribuidora hoje.</p>
+          <h2 className="text-3xl font-bold tracking-tight text-zinc-900">Olá, JD! 👋</h2>
+          <p className="text-zinc-500 font-medium">Aqui está o resumo da sua distribuidora hoje.</p>
         </div>
         <button
           onClick={() => onNavigate('new-order')}
