@@ -52,7 +52,10 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   };
 
   const fetchStats = async () => {
-    const today = new Date().toISOString().split('T')[0];
+    // 1. Calculate the 'current' date prefix in America/Sao_Paulo timezone
+    const now = new Date();
+    const saoPauloDateStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }); // Returns YYYY-MM-DD
+    const today = saoPauloDateStr;
     const monthPrefix = today.substring(0, 7);
 
     // 1. Transactions for Daily/Monthly totals and expenses
@@ -63,22 +66,30 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       let monthlyExpenses = 0;
 
       for (const t of trans) {
-        const dbDate = (t.created_at || '').substring(0, 10);
-        const dbMonth = (t.created_at || '').substring(0, 7);
+        // Evaluate db date using local timezone as well for proper comparison if needed
+        // Since created_at is UTC in DB, let's normalize to Sao Paulo Date string
+        const tDate = new Date(t.created_at);
+        const tDateString = tDate.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+        const dbMonth = tDateString.substring(0, 7);
 
         if (t.type === 'income') {
           if (dbMonth === monthPrefix) monthlyTotal += t.amount;
-          if (dbDate === today) dailyTotal += t.amount;
+          if (tDateString === today) dailyTotal += t.amount;
         } else if (t.type === 'expense') {
           if (dbMonth === monthPrefix) monthlyExpenses += t.amount;
         }
       }
 
-      const startDate = `${monthPrefix}-01T00:00:00.000Z`;
-      const nextMonth = parseInt(monthPrefix.substring(5, 7)) + 1;
-      const nextMonthYear = nextMonth > 12 ? parseInt(monthPrefix.substring(0, 4)) + 1 : monthPrefix.substring(0, 4);
-      const nextMonthStr = nextMonth > 12 ? '01' : nextMonth.toString().padStart(2, '0');
-      const endDate = `${nextMonthYear}-${nextMonthStr}-01T00:00:00.000Z`;
+      // Get local start of month
+      const parts = monthPrefix.split('-');
+      const year = parseInt(parts[0]);
+      const month = parseInt(parts[1]) - 1; // 0-indexed
+      const localStartOfMonth = new Date(year, month, 1, 0, 0, 0); // 00:00 local time
+      
+      const localNextMonth = new Date(year, month + 1, 1, 0, 0, 0); // next month 00:00 local time
+
+      const startDate = localStartOfMonth.toISOString();
+      const endDate = localNextMonth.toISOString();
 
       // 2. Profit calculation (Paid orders this month)
       const { data: orders } = await supabase

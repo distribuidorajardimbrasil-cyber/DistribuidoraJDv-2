@@ -10,7 +10,8 @@ import {
   X,
   LogOut,
   ShieldAlert,
-  Truck
+  Truck,
+  ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Profile } from './types';
@@ -29,8 +30,9 @@ import Deliverymen from './components/Deliverymen';
 
 export default function App() {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'customers' | 'orders' | 'finance' | 'new-order' | 'team' | 'deliverymen'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'customers' | 'orders' | 'finance-overview' | 'finance-payments' | 'finance-rates' | 'new-order' | 'team' | 'deliverymen'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isFinanceOpen, setIsFinanceOpen] = useState(false);
 
   // Set default tab when profile loads
   useEffect(() => {
@@ -88,10 +90,10 @@ export default function App() {
   let navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'new-order', label: 'Novo Pedido', icon: PlusCircle, primary: true },
-    { id: 'orders', label: 'Pedidos', icon: ShoppingCart },
+    { id: 'orders', label: 'Pedidos (Entregas)', icon: ShoppingCart },
     { id: 'products', label: 'Estoque', icon: Package },
     { id: 'customers', label: 'Clientes', icon: Users },
-    { id: 'finance', label: 'Financeiro', icon: DollarSign },
+    { id: 'finance', label: 'Financeiro', icon: DollarSign, isExpandable: true },
     { id: 'team', label: 'Equipe', icon: ShieldAlert },
     { id: 'deliverymen', label: 'Entregadores', icon: Truck },
   ];
@@ -107,8 +109,10 @@ export default function App() {
       case 'dashboard': return isAdmin ? <Dashboard onNavigate={setActiveTab} /> : null;
       case 'products': return isAdmin ? <Products /> : null;
       case 'customers': return isAdmin ? <Customers /> : null;
-      case 'orders': return <Orders profile={profile} />; // Passes profile down if needed
-      case 'finance': return isAdmin ? <Finance /> : null;
+      case 'orders': return <Orders profile={profile} isFinanceMode={false} />;
+      case 'finance-overview': return isAdmin ? <Finance tab="overview" /> : null;
+      case 'finance-payments': return isAdmin ? <Orders profile={profile} isFinanceMode={true} /> : null;
+      case 'finance-rates': return isAdmin ? <Finance tab="rates" /> : null;
       case 'new-order': return isAdmin ? <NewOrder onComplete={() => setActiveTab('orders')} /> : null;
       case 'team': return isAdmin ? <Team /> : null;
       case 'deliverymen': return isAdmin ? <Deliverymen /> : null;
@@ -149,20 +153,57 @@ export default function App() {
 
               <nav className="mt-4 px-3 space-y-1">
                 {navItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      setActiveTab(item.id as any);
-                      setIsSidebarOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === item.id
-                      ? (item.primary ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-zinc-100 text-emerald-600 font-medium')
-                      : (item.primary ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900')
-                      }`}
-                  >
-                    <item.icon size={20} />
-                    <span>{item.label}</span>
-                  </button>
+                  <div key={item.id}>
+                    <button
+                      onClick={() => {
+                        if (item.isExpandable) {
+                          setIsFinanceOpen(!isFinanceOpen);
+                        } else {
+                          setActiveTab(item.id as any);
+                          setIsSidebarOpen(false);
+                        }
+                      }}
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 ${
+                        (!item.isExpandable && activeTab === item.id) || (item.isExpandable && activeTab.startsWith('finance-'))
+                        ? (item.primary ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-zinc-100 text-emerald-600 font-medium')
+                        : (item.primary ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900')
+                        }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <item.icon size={20} />
+                        <span>{item.label}</span>
+                      </div>
+                      {item.isExpandable && (
+                        <div className={`transition-transform duration-200 ${isFinanceOpen || activeTab.startsWith('finance-') ? 'rotate-90' : ''}`}>
+                          <ChevronRight size={16} />
+                        </div>
+                      )}
+                    </button>
+                    
+                    {/* Sub-menu for Financeiro */}
+                    {item.isExpandable && (isFinanceOpen || activeTab.startsWith('finance-')) && (
+                      <div className="mt-1 ml-4 pl-4 border-l-2 border-zinc-100 space-y-1">
+                        <button
+                          onClick={() => { setActiveTab('finance-overview'); setIsSidebarOpen(false); }}
+                          className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-colors ${activeTab === 'finance-overview' ? 'bg-zinc-100 text-emerald-600 font-bold' : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900'}`}
+                        >
+                          Visão Geral
+                        </button>
+                        <button
+                          onClick={() => { setActiveTab('finance-payments'); setIsSidebarOpen(false); }}
+                          className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-colors ${activeTab === 'finance-payments' ? 'bg-zinc-100 text-emerald-600 font-bold' : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900'}`}
+                        >
+                          Pagamentos Pendentes
+                        </button>
+                        <button
+                          onClick={() => { setActiveTab('finance-rates'); setIsSidebarOpen(false); }}
+                          className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-colors ${activeTab === 'finance-rates' ? 'bg-zinc-100 text-emerald-600 font-bold' : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900'}`}
+                        >
+                          Taxas Maquineta
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </nav>
 

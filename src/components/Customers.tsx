@@ -49,6 +49,7 @@ export default function Customers() {
   };
 
   const fetchCustomers = async () => {
+    // @ts-ignore
     const { data, error } = await supabase
       .from('customers')
       .select('*')
@@ -243,6 +244,7 @@ export default function Customers() {
     if (!selectedCustomer) return;
     const { error } = await supabase
       .from('customers')
+      // @ts-ignore
       .update({ is_active: false })
       .eq('id', selectedCustomer.id);
 
@@ -288,8 +290,13 @@ export default function Customers() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Clientes</h2>
-          <p className="text-zinc-500">Gerencie sua base de clientes e fidelidade.</p>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold">Clientes</h2>
+            <div className="bg-emerald-100 text-emerald-700 font-bold px-3 py-1 rounded-full text-sm">
+              {customers.length} totais
+            </div>
+          </div>
+          <p className="text-zinc-500 mt-1">Gerencie sua base de clientes e fidelidade.</p>
         </div>
         <button
           onClick={() => { resetForm(); setIsModalOpen(true); }}

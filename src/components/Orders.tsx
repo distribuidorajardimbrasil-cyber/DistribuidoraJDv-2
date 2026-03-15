@@ -12,12 +12,13 @@ const DEFAULT_CATEGORIES: Category[] = [
 
 interface OrdersProps {
   profile?: Profile;
+  isFinanceMode?: boolean;
 }
 
-export default function Orders({ profile }: OrdersProps) {
+export default function Orders({ profile, isFinanceMode }: OrdersProps) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('Ativos');
+  const [filterStatus, setFilterStatus] = useState(isFinanceMode ? 'Pendente' : 'Ativos');
   const [categories, setCategories] = useState<Category[]>([]);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -27,6 +28,7 @@ export default function Orders({ profile }: OrdersProps) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [editCart, setEditCart] = useState<{ product: Product, quantity: number, customPrice: number | string }[]>([]);
+  const [editNotes, setEditNotes] = useState('');
   const [productSearch, setProductSearch] = useState('');
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
@@ -205,6 +207,51 @@ export default function Orders({ profile }: OrdersProps) {
     setIsDeleting(true);
 
     try {
+      // 0. Reverse stock, movements, loyalty, and transactions if the order was "Pago"
+      if (selectedOrder.payment_status === 'Pago') {
+        const { data: items } = await supabase.from('order_items').select('product_id, quantity').eq('order_id', selectedOrder.id);
+        const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+        const allowedBrands = ['GAMBOA', 'INDAIA', 'ITAGY', 'ITAGI', 'JORDAO', 'MAIORCA'];
+
+        let waterCount = 0;
+        if (items) {
+          for (const item of items) {
+            const { data: prod } = await supabase.from('products').select('name, stock_quantity, category').eq('id', item.product_id).single();
+            if (prod) {
+              const searchString = normalize(`${prod.name || ""} ${prod.category || ""}`);
+              const isAllowedBrand = allowedBrands.some(brand => searchString.includes(brand));
+              const isWater20L = searchString.includes("AGUA") && (searchString.includes("20L") || searchString.includes("20 L") || searchString.includes("20LITROS") || searchString.includes("20 LITROS"));
+
+              if (isAllowedBrand && isWater20L) {
+                waterCount += item.quantity;
+              }
+
+              // Restore stock
+              await supabase.from('products').update({ stock_quantity: (prod.stock_quantity || 0) + item.quantity }).eq('id', item.product_id);
+
+              // Movement
+              await supabase.from('stock_movements').insert([{
+                product_id: item.product_id,
+                type: 'in',
+                quantity: item.quantity,
+                reason: 'Reversão de Venda (Pedido Excluído)'
+              }]);
+            }
+          }
+        }
+
+        // Loyalty
+        if (selectedOrder.customer_id) {
+          const { data: cData } = await supabase.from('customers').select('loyalty_count').eq('id', selectedOrder.customer_id).single();
+          if (cData) {
+            await supabase.from('customers').update({ loyalty_count: Math.max(0, (cData.loyalty_count || 0) - waterCount) }).eq('id', selectedOrder.customer_id);
+          }
+        }
+
+        // Remove Transaction
+        await supabase.from('transactions').delete().like('description', `%Pedido #${selectedOrder.id}`);
+      }
+
       // 1. Delete order items first
       await supabase.from('order_items').delete().eq('order_id', selectedOrder.id);
 
@@ -231,6 +278,7 @@ export default function Orders({ profile }: OrdersProps) {
       return { product: p, quantity: i.quantity, customPrice: i.price_at_time };
     }) || [];
     setEditCart(initialCart);
+    setEditNotes(order.notes || '');
     setProductSearch('');
     setIsEditModalOpen(true);
   };
@@ -255,8 +303,8 @@ export default function Orders({ profile }: OrdersProps) {
         }]);
       }
 
-      // 3. Update total amount on order
-      await supabase.from('orders').update({ total_amount: newTotal }).eq('id', editingOrder.id);
+      // 3. Update total amount and notes on order
+      await supabase.from('orders').update({ total_amount: newTotal, notes: editNotes }).eq('id', editingOrder.id);
 
       setIsEditModalOpen(false);
       fetchOrders();
@@ -326,8 +374,8 @@ export default function Orders({ profile }: OrdersProps) {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Pedidos</h2>
-          <p className="text-zinc-500">Acompanhe e gerencie as vendas e entregas.</p>
+          <h2 className="text-2xl font-bold">{isFinanceMode ? 'Gestão de Pagamentos' : 'Pedidos'}</h2>
+          <p className="text-zinc-500">{isFinanceMode ? 'Gerencie pendências e pagamentos de pedidos.' : 'Acompanhe e gerencie as entregas.'}</p>
         </div>
       </div>
 
@@ -354,11 +402,19 @@ export default function Orders({ profile }: OrdersProps) {
             {profile?.role !== 'entregador' && (
               <>
                 <option value="Todos">Todos os Pedidos</option>
-                <option value="Pendente">Apenas Pendentes</option>
-                <option value="Pago">Apenas Pagos</option>
-                <option value="Em preparo">Em preparo</option>
-                <option value="Saiu para entrega">Saiu para entrega</option>
-                <option value="Entregue">Apenas Entregues</option>
+                {isFinanceMode && (
+                  <>
+                    <option value="Pendente">Apenas Pendentes</option>
+                    <option value="Pago">Apenas Pagos</option>
+                  </>
+                )}
+                {!isFinanceMode && (
+                  <>
+                    <option value="Em preparo">Em preparo</option>
+                    <option value="Saiu para entrega">Saiu para entrega</option>
+                    <option value="Entregue">Apenas Entregues</option>
+                  </>
+                )}
               </>
             )}
           </select>
@@ -438,7 +494,7 @@ export default function Orders({ profile }: OrdersProps) {
               </div>
 
               <div className="flex flex-wrap items-center gap-3 md:justify-end">
-                {profile?.role !== 'entregador' && (
+                {(isFinanceMode || profile?.role === 'admin') && isFinanceMode && (
                   <div className="flex flex-col gap-1">
                     <label className="text-[10px] uppercase font-bold text-zinc-400 ml-1">Pagamento</label>
                     <select
@@ -453,22 +509,24 @@ export default function Orders({ profile }: OrdersProps) {
                   </div>
                 )}
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] uppercase font-bold text-zinc-400 ml-1">Entrega</label>
-                  <select
-                    value={order.delivery_status}
-                    onChange={(e) => updateStatus(order.id, 'delivery', e.target.value)}
-                    className={`text-xs font-bold px-3 py-2 rounded-xl outline-none border-none cursor-pointer ${order.delivery_status === 'Entregue' ? 'bg-blue-100 text-blue-700' :
-                      order.delivery_status === 'Saiu para entrega' ? 'bg-indigo-100 text-indigo-700' : 'bg-zinc-100 text-zinc-700'
-                      }`}
-                  >
-                    <option value="Em preparo">Em preparo</option>
-                    <option value="Saiu para entrega">Saiu para entrega</option>
-                    <option value="Entregue">Entregue</option>
-                  </select>
-                </div>
+                {(!isFinanceMode) && (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] uppercase font-bold text-zinc-400 ml-1">Entrega</label>
+                    <select
+                      value={order.delivery_status}
+                      onChange={(e) => updateStatus(order.id, 'delivery', e.target.value)}
+                      className={`text-xs font-bold px-3 py-2 rounded-xl outline-none border-none cursor-pointer ${order.delivery_status === 'Entregue' ? 'bg-blue-100 text-blue-700' :
+                        order.delivery_status === 'Saiu para entrega' ? 'bg-indigo-100 text-indigo-700' : 'bg-zinc-100 text-zinc-700'
+                        }`}
+                    >
+                      <option value="Em preparo">Em preparo</option>
+                      <option value="Saiu para entrega">Saiu para entrega</option>
+                      <option value="Entregue">Entregue</option>
+                    </select>
+                  </div>
+                )}
 
-                {profile?.role !== 'entregador' && (
+                {!isFinanceMode && profile?.role !== 'entregador' && (
                   <div className="flex items-center gap-1 ml-2 border-l border-zinc-100 pl-3">
                     {order.payment_status === 'Pendente' && (
                       <button
@@ -609,6 +667,17 @@ export default function Orders({ profile }: OrdersProps) {
                     </div>
                   ))}
                   {editCart.length === 0 && <p className="text-sm text-zinc-400 text-center py-8">Nenhum item no pedido.</p>}
+                </div>
+
+                <div className="mt-2">
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Observação (Opcional)</label>
+                  <textarea
+                    className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-emerald-500 text-sm resize-none"
+                    placeholder="Ex: Troco para 50, entregar na portaria..."
+                    rows={2}
+                    value={editNotes}
+                    onChange={e => setEditNotes(e.target.value)}
+                  />
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-zinc-200">

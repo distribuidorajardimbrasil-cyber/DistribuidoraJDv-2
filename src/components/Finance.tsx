@@ -1,6 +1,6 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { DollarSign, TrendingUp, TrendingDown, History, Plus, Calendar as CalendarIcon, ArrowUpRight, ArrowDownRight, Trash2, ShieldAlert, Info, X, ShoppingBag, User, BarChart2, Filter } from 'lucide-react';
-import { Transaction, Category } from '../types';
+import { Transaction, Category, PaymentRate } from '../types';
 import { supabase } from '../lib/supabase';
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, isWithinInterval, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -8,7 +8,11 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 
 type Period = 'daily' | 'weekly' | 'monthly' | 'custom';
 
-export default function Finance() {
+interface FinanceProps {
+  tab?: 'overview' | 'rates';
+}
+
+export default function Finance({ tab = 'overview' }: FinanceProps) {
   const [stats, setStats] = useState({
     periodTotal: 0,
     periodExpenses: 0,
@@ -36,6 +40,11 @@ export default function Finance() {
   const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [categories, setCategories] = useState<Category[]>([]);
+  const [rates, setRates] = useState<PaymentRate[]>([]);
+  const [feeStats, setFeeStats] = useState({ daily: 0, monthly: 0, yearly: 0 });
+  const [editingRateId, setEditingRateId] = useState<number | null>(null);
+  const [editingRateValue, setEditingRateValue] = useState<number>(0);
+  const [categoryQuantities, setCategoryQuantities] = useState({ in: 0, out: 0 });
 
   useEffect(() => {
     fetchCategories();
@@ -47,8 +56,54 @@ export default function Finance() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, [period, selectedDate, filterCategory]);
+    if (tab === 'overview') {
+      fetchData();
+    } else if (tab === 'rates') {
+      fetchRatesData();
+    }
+  }, [period, selectedDate, filterCategory, tab]);
+
+  const fetchRatesData = async () => {
+    // 1. Fetch rates
+    const { data: ratesData } = await supabase.from('payment_rates').select('*').order('id');
+    if (ratesData) setRates(ratesData);
+
+    // 2. Compute fee stats natively applying timezone
+    const now = new Date();
+    const saoPauloDateStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }); 
+    const currentYear = saoPauloDateStr.substring(0, 4);
+    const currentMonth = saoPauloDateStr.substring(0, 7);
+    const currentDay = saoPauloDateStr;
+
+    // Fetch all paid orders that had a discount
+    const { data: orders } = await supabase.from('orders')
+      .select('created_at, total_amount, net_amount')
+      .eq('payment_status', 'Pago')
+      .not('net_amount', 'is', null);
+
+    if (orders) {
+      let d = 0, m = 0, y = 0;
+      for (const o of orders) {
+        if (!o.net_amount || o.total_amount === o.net_amount) continue;
+        
+        const diff = o.total_amount - o.net_amount;
+        // Parse DB UTC date to local boundary properly.
+        const oDate = new Date(o.created_at);
+        const oDateStr = oDate.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+        
+        if (oDateStr.startsWith(currentYear)) y += diff;
+        if (oDateStr.startsWith(currentMonth)) m += diff;
+        if (oDateStr === currentDay) d += diff;
+      }
+      setFeeStats({ daily: d, monthly: m, yearly: y });
+    }
+  };
+
+  const handleUpdateRate = async (id: number) => {
+    await supabase.from('payment_rates').update({ rate_percentage: editingRateValue }).eq('id', id);
+    setEditingRateId(null);
+    fetchRatesData(); // refresh UI
+  };
 
   const getDateRange = () => {
     const date = parseISO(selectedDate);
@@ -72,6 +127,8 @@ export default function Finance() {
     let periodTotal = 0;
     let periodExpenses = 0;
     let profitTotal = 0;
+    let inQuantity = 0;
+    let outQuantity = 0;
 
     const chartMap = new Map<string, { name: string; Entradas: number; Saídas: number }>();
 
@@ -205,9 +262,25 @@ export default function Finance() {
         }
       }
 
+      // 3. Query stock movements for this category to compute entered/left quantities
+      const { data: movements } = await supabase
+        .from('stock_movements')
+        .select('type, quantity, product:products!inner(category)')
+        .eq('product.category', filterCategory)
+        .gte('created_at', startStr)
+        .lte('created_at', endStr);
+
+      if (movements) {
+        for (const mov of movements) {
+          if (mov.type === 'in') inQuantity += mov.quantity;
+          else if (mov.type === 'out') outQuantity += mov.quantity;
+        }
+      }
+
       finalTransactions.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
 
+    setCategoryQuantities({ in: inQuantity, out: outQuantity });
     setTransactions(finalTransactions);
     setChartData(Array.from(chartMap.values()));
     setStats({ periodTotal, periodExpenses, profit: profitTotal });
@@ -291,6 +364,119 @@ export default function Finance() {
     return null;
   };
 
+  if (tab === 'rates') {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold">Taxas e Gastos da Maquineta</h2>
+            <p className="text-zinc-500">Configure as taxas de cartão e veja sua dimensão de gastos em tarifas.</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white p-6 rounded-2xl border border-zinc-100 shadow-sm">
+            <h3 className="text-zinc-500 font-medium mb-1">Gasto Hoje</h3>
+            <p className="text-3xl font-bold text-rose-600">
+              R$ {feeStats.daily.toFixed(2)}
+            </p>
+          </div>
+          <div className="bg-white p-6 rounded-2xl border border-zinc-100 shadow-sm">
+            <h3 className="text-zinc-500 font-medium mb-1">Gasto Neste Mês</h3>
+            <p className="text-3xl font-bold text-rose-600">
+              R$ {feeStats.monthly.toFixed(2)}
+            </p>
+          </div>
+          <div className="bg-white p-6 rounded-2xl border border-zinc-100 shadow-sm">
+            <h3 className="text-zinc-500 font-medium mb-1">Gasto Neste Ano</h3>
+            <p className="text-3xl font-bold text-rose-600">
+              R$ {feeStats.yearly.toFixed(2)}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm border border-zinc-200">
+          <div className="p-6 border-b border-zinc-200">
+            <h3 className="font-bold flex items-center gap-2">
+              <BarChart2 size={20} className="text-indigo-600" />
+              Tabela de Taxas
+            </h3>
+            <p className="text-sm text-zinc-500 mt-1">
+              Estes valores serão descontados automaticamente das vendas realizadas na Maquineta e não entrarão para a sua Receita visualizada no Dashboard.
+            </p>
+          </div>
+          <div className="p-0 overflow-auto">
+            <table className="w-full min-w-max text-left border-collapse">
+              <thead>
+                <tr className="bg-zinc-50 border-b border-zinc-200">
+                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">Método</th>
+                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">Taxa Vigente (%)</th>
+                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase text-right">Ação</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {rates.map(rate => (
+                  <tr key={rate.id} className="hover:bg-zinc-50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-zinc-900 flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                        <DollarSign size={16} />
+                      </div>
+                      Maquineta - {rate.method_name}
+                    </td>
+                    <td className="px-6 py-4">
+                      {editingRateId === rate.id ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={editingRateValue}
+                            onChange={(e) => setEditingRateValue(parseFloat(e.target.value) || 0)}
+                            className="w-24 px-3 py-1.5 border border-indigo-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20"
+                          />
+                          <span className="text-zinc-500 font-bold">%</span>
+                        </div>
+                      ) : (
+                        <span className="font-bold text-lg text-indigo-700">{rate.rate_percentage}%</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {editingRateId === rate.id ? (
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => setEditingRateId(null)}
+                            className="text-xs font-bold px-3 py-1.5 rounded-lg text-zinc-500 hover:bg-zinc-200"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            onClick={() => handleUpdateRate(rate.id)}
+                            className="text-xs font-bold px-3 py-1.5 rounded-lg text-white bg-indigo-600 hover:bg-indigo-700"
+                          >
+                            Salvar
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setEditingRateId(rate.id);
+                            setEditingRateValue(rate.rate_percentage);
+                          }}
+                          className="text-xs font-bold px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg transition-colors"
+                        >
+                          Editar Taxa
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -370,6 +556,48 @@ export default function Finance() {
           <p className="text-2xl font-bold mt-1 text-indigo-600">{formatCurrency(stats.profit)}</p>
         </div>
       </div>
+
+      {/* Category Quantities (Only show if filtering by a specific category) */}
+      {filterCategory !== 'all' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Quantidade que Entrou ({filterCategory})</p>
+              <p className="text-2xl font-bold text-zinc-800 mt-1">{categoryQuantities.in} un.</p>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400">
+               <ArrowDownRight size={20} />
+            </div>
+          </div>
+          <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Quantidade que Saiu ({filterCategory})</p>
+              <p className="text-2xl font-bold text-zinc-800 mt-1">{categoryQuantities.out} un.</p>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400">
+               <ArrowUpRight size={20} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Category Quantities (Only show if filtering by a specific category) */}
+      {filterCategory !== 'all' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Quantidade que Entrou ({filterCategory})</p>
+              <p className="text-2xl font-bold text-zinc-800 mt-1">{categoryQuantities.in} un.</p>
+            </div>
+          </div>
+          <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Quantidade que Saiu ({filterCategory})</p>
+              <p className="text-2xl font-bold text-zinc-800 mt-1">{categoryQuantities.out} un.</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Chart Section */}
       <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm">

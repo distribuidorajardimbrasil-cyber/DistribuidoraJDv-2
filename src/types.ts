@@ -34,11 +34,18 @@ export interface Order {
   customer_notes?: string;
   items?: OrderItem[];
   total_amount: number;
+  net_amount?: number;
   payment_method: string;
   payment_status: string;
   delivery_status: string;
   notes?: string;
   created_at: string;
+}
+
+export interface PaymentRate {
+  id: number;
+  method_name: string;
+  rate_percentage: number;
 }
 
 export interface Transaction {

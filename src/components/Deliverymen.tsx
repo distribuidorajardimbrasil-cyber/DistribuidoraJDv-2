@@ -21,15 +21,25 @@ export default function Deliverymen() {
 
     const [period, setPeriod] = useState<Period>('daily');
     const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+    const [filterCategory, setFilterCategory] = useState<string>('all');
+    const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
     const [loading, setLoading] = useState(true);
+
+    const [summary, setSummary] = useState({ totalOrders: 0, totalItems: 0, totalValue: 0 });
 
     useEffect(() => {
         fetchDeliverymen();
+        fetchCategories();
     }, []);
 
     useEffect(() => {
         fetchHistory();
-    }, [selectedManId, period, selectedDate]);
+    }, [selectedManId, period, selectedDate, filterCategory]);
+
+    const fetchCategories = async () => {
+        const { data } = await supabase.from('categories').select('*').order('name');
+        if (data) setCategories(data);
+    };
 
     const fetchDeliverymen = async () => {
         const { data } = await supabase.from('profiles').select('id, name, role').eq('role', 'entregador');
@@ -54,7 +64,7 @@ export default function Deliverymen() {
         setLoading(true);
         let query: any = supabase
             .from('orders')
-            .select('*, customer:customers(name, address), items:order_items(quantity, product:products(name, category))')
+            .select('*, customer:customers(name, address), items:order_items(quantity, price_at_time, product:products(name, category))')
             .not('deliveryman_id', 'is', null)
             .order('created_at', { ascending: false });
 
@@ -67,20 +77,67 @@ export default function Deliverymen() {
             query = query.gte('created_at', range.start).lte('created_at', range.end);
         }
 
+        if (period === 'all') {
+            query = query.limit(5000);
+        }
+
         const { data } = await query;
 
         if (data) {
-            const formatted = data.map((o: any) => ({
-                ...o,
-                customer_name: o.customer?.name || 'Consumidor',
-                customer_address: o.customer?.address || 'Retirada na loja',
-                items: (o.items || []).map((i: any) => ({
-                    product_name: i.product?.name,
-                    product_category: i.product?.category,
-                    quantity: i.quantity
-                }))
-            }));
+            let filteredData = data;
+
+            // Apply category filter in-memory Since Supabase nested joins filtering is complex
+            if (filterCategory !== 'all') {
+                filteredData = data.filter((order: any) =>
+                    order.items?.some((item: any) => item.product?.category === filterCategory)
+                );
+            }
+
+            let tOrders = 0;
+            let tItems = 0;
+            let tValue = 0;
+
+            const formatted = filteredData.map((o: any) => {
+                let orderItems = o.items || [];
+                
+                // If filtering by a specific category, only count items from that category
+                if (filterCategory !== 'all') {
+                    orderItems = orderItems.filter((i: any) => i.product?.category === filterCategory);
+                }
+
+                // Calculate summary for this order
+                tOrders += 1;
+                // Assuming orders have the original price stored or we calculate from total if filtering isn't specific.
+                // Since total_amount represents the whole order, if we filter by category, we need a way to know the item price.
+                // For now, we'll sum the quantities. Without unit price in order_items easily accessible here from standard setup, 
+                // we'll use total_amount if 'all' categories, otherwise we might lack exact value.
+                // Wait, order_items in this app has price_at_time? The query doesn't select it currently.
+                // Let's modify the select query above to include price_at_time.
+                
+                const orderTotalItems = orderItems.reduce((acc: number, item: any) => acc + item.quantity, 0);
+                const orderTotalValue = filterCategory === 'all' 
+                    ? o.total_amount 
+                    : orderItems.reduce((acc: number, item: any) => acc + (Number(item.price_at_time || 0) * item.quantity), 0);
+                
+                tItems += orderTotalItems;
+                tValue += orderTotalValue;
+
+                return {
+                    ...o,
+                    customer_name: o.customer?.name || 'Consumidor',
+                    customer_address: o.customer?.address || 'Retirada na loja',
+                    items: orderItems.map((i: any) => ({
+                        product_name: i.product?.name,
+                        product_category: i.product?.category,
+                        quantity: i.quantity
+                    }))
+                };
+            });
             setOrders(formatted);
+            setSummary({ totalOrders: tOrders, totalItems: tItems, totalValue: tValue });
+        } else {
+            setSummary({ totalOrders: 0, totalItems: 0, totalValue: 0 });
+            setOrders([]);
         }
         setLoading(false);
     };
@@ -143,6 +200,36 @@ export default function Deliverymen() {
                         />
                     </div>
                 )}
+                
+                <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-100 p-2 px-3 rounded-xl ml-auto border-dashed border-emerald-300">
+                    <Filter size={18} className="text-emerald-500" />
+                    <select
+                        value={filterCategory}
+                        onChange={(e) => setFilterCategory(e.target.value)}
+                        className="bg-transparent border-none outline-none font-bold text-emerald-700 cursor-pointer text-sm w-32 truncate"
+                    >
+                        <option value="all">Todas as Categorias</option>
+                        {categories.map(cat => (
+                            <option key={cat.id} value={cat.name}>{cat.name}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm">
+                    <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Total de Entregas</p>
+                    <p className="text-3xl font-black text-zinc-800">{summary.totalOrders}</p>
+                </div>
+                <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm">
+                    <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Itens Entregues</p>
+                    <p className="text-3xl font-black text-indigo-600">{summary.totalItems} un.</p>
+                </div>
+                <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm">
+                    <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Valor Representado</p>
+                    <p className="text-3xl font-black text-emerald-600">{formatCurrency(summary.totalValue)}</p>
+                </div>
             </div>
 
             {loading ? (

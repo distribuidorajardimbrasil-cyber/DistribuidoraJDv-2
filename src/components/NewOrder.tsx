@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, Plus, Minus, Trash2, User, ShoppingBag, CreditCard, CheckCircle } from 'lucide-react';
-import { Product, Customer, Category } from '../types';
+import { Product, Customer, Category, PaymentRate } from '../types';
 import { supabase } from '../lib/supabase';
 
 const DEFAULT_CATEGORIES: Category[] = [
@@ -24,6 +24,8 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [cart, setCart] = useState<{ product: Product, quantity: number, customPrice: number | string }[]>([]);
   const [paymentMethod, setPaymentMethod] = useState('Pix');
+  const [paymentSubMethod, setPaymentSubMethod] = useState('Débito');
+  const [paymentRates, setPaymentRates] = useState<PaymentRate[]>([]);
   const [paymentStatus, setPaymentStatus] = useState('Pago');
   const [deliveryStatus, setDeliveryStatus] = useState('Em preparo');
   const [orderNotes, setOrderNotes] = useState('');
@@ -32,7 +34,13 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
     fetchProducts();
     fetchCustomers();
     fetchCategories();
+    fetchPaymentRates();
   }, []);
+
+  const fetchPaymentRates = async () => {
+    const { data } = await supabase.from('payment_rates').select('*');
+    if (data) setPaymentRates(data);
+  };
 
   const fetchCategories = async () => {
     const { data } = await supabase.from('categories').select('*');
@@ -89,13 +97,24 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
   const handleSubmit = async () => {
     if (cart.length === 0) return;
 
+    let netAmount = total;
+    if (paymentMethod === 'Maquineta' && paymentSubMethod) {
+      const rate = paymentRates.find(r => r.method_name === paymentSubMethod)?.rate_percentage || 0;
+      netAmount = total - (total * (rate / 100));
+    }
+    
+    const finalPaymentMethod = paymentMethod === 'Maquineta' && paymentSubMethod 
+      ? `Maquineta - ${paymentSubMethod}` 
+      : paymentMethod;
+
     // 1. Create Order
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert([{
         customer_id: selectedCustomer?.id || null,
         total_amount: total,
-        payment_method: paymentMethod,
+        net_amount: netAmount,
+        payment_method: finalPaymentMethod,
         payment_status: paymentStatus,
         delivery_status: deliveryStatus,
         notes: orderNotes
@@ -180,7 +199,7 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
 
       await supabase.from('transactions').insert([{
         type: 'income',
-        amount: total,
+        amount: netAmount,
         description: `Venda Pedido #${orderId}`
       }]);
     }
@@ -327,10 +346,14 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
             <div className="space-y-3">
               <label className="block text-xs font-bold text-zinc-400 uppercase">Pagamento</label>
               <div className="grid grid-cols-3 gap-2">
-                {['Pix', 'Dinheiro', 'Cartão'].map(method => (
+                {['Pix', 'Dinheiro', 'Maquineta'].map(method => (
                   <button
                     key={method}
-                    onClick={() => setPaymentMethod(method)}
+                    onClick={() => {
+                      setPaymentMethod(method);
+                      if (method !== 'Maquineta') setPaymentSubMethod('');
+                      else if (!paymentSubMethod) setPaymentSubMethod('Débito');
+                    }}
                     className={`py-2 text-xs font-bold rounded-xl border transition-all ${paymentMethod === method ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-white border-zinc-200 text-zinc-500 hover:border-zinc-300'
                       }`}
                   >
@@ -338,6 +361,21 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
                   </button>
                 ))}
               </div>
+
+              {paymentMethod === 'Maquineta' && (
+                <div className="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-zinc-100">
+                  {['Débito', 'Crédito', 'Pix'].map(sub => (
+                    <button
+                      key={sub}
+                      onClick={() => setPaymentSubMethod(sub)}
+                      className={`py-1.5 text-[10px] font-bold rounded-lg border transition-all ${paymentSubMethod === sub ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-indigo-50 border-indigo-100 text-indigo-600 hover:bg-indigo-100'
+                        }`}
+                    >
+                      {sub}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
