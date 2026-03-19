@@ -28,7 +28,8 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
     type: 'expense' as 'income' | 'expense',
     amount: 0,
     description: '',
-    category: 'all'
+    category: 'all',
+    quantity: 1
   });
   const [selectedTxForDetails, setSelectedTxForDetails] = useState<Transaction | null>(null);
   const [linkedOrderItems, setLinkedOrderItems] = useState<any[]>([]);
@@ -288,8 +289,10 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const finalDescription = formData.category !== 'all' && formData.type === 'expense'
-      ? `[${formData.category}] ${formData.description}`
+    const qtyText = (formData.type === 'expense' && formData.quantity > 0) ? `${formData.quantity}x ` : '';
+    const categoryPrefix = formData.category !== 'all' && formData.type === 'expense' ? `[${formData.category}] ` : '';
+    const finalDescription = formData.type === 'expense' 
+      ? `${categoryPrefix}${qtyText}${formData.description}`
       : formData.description;
 
     const { error } = await supabase.from('transactions').insert([{
@@ -299,9 +302,24 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
     }]);
 
     if (!error) {
+      if (formData.type === 'expense' && formData.category !== 'all' && formData.quantity > 0) {
+        // Try to update stock for the first product in this category
+        const { data: prods } = await supabase.from('products').select('*').eq('category', formData.category).limit(1);
+        if (prods && prods.length > 0) {
+          const product = prods[0];
+          await supabase.from('products').update({ stock_quantity: (product.stock_quantity || 0) + formData.quantity }).eq('id', product.id);
+          await supabase.from('stock_movements').insert([{
+            product_id: product.id,
+            type: 'in',
+            quantity: formData.quantity,
+            reason: `Despesa: ${formData.description}`
+          }]);
+        }
+      }
+
       setIsModalOpen(false);
       fetchData();
-      setFormData({ type: 'expense', amount: 0, description: '', category: 'all' });
+      setFormData({ type: 'expense', amount: 0, description: '', category: 'all', quantity: 1 });
     }
   };
 
@@ -711,18 +729,29 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
                 </div>
               </div>
               {formData.type === 'expense' && (
-                <div>
-                  <label className="block text-sm font-bold text-zinc-700 mb-1">Categoria (Opcional)</label>
-                  <select
-                    className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-500"
-                    value={formData.category}
-                    onChange={e => setFormData({ ...formData, category: e.target.value })}
-                  >
-                    <option value="all">Despesa Geral</option>
-                    {categories.map(cat => (
-                      <option key={cat.id} value={cat.name}>{cat.name}</option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-zinc-700 mb-1">Categoria (Opcional)</label>
+                    <select
+                      className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-500"
+                      value={formData.category}
+                      onChange={e => setFormData({ ...formData, category: e.target.value })}
+                    >
+                      <option value="all">Despesa Geral</option>
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.name}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-zinc-700 mb-1">Quantidade</label>
+                    <input
+                      type="number" min="0" step="1"
+                      className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-500"
+                      value={formData.quantity}
+                      onChange={e => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
                 </div>
               )}
               <div>

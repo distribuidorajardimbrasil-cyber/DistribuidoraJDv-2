@@ -31,6 +31,7 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
   const [editNotes, setEditNotes] = useState('');
   const [productSearch, setProductSearch] = useState('');
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editManualTotal, setEditManualTotal] = useState<number>(0);
 
   useEffect(() => {
     fetchOrders();
@@ -135,9 +136,10 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
         await supabase.from('transactions').delete().like('description', `%Pedido #${id}`);
 
         // Transaction
+        const netAmt = order.net_amount !== null && order.net_amount !== undefined ? order.net_amount : order.total_amount;
         await supabase.from('transactions').insert([{
           type: 'income',
-          amount: order.total_amount,
+          amount: netAmt,
           description: `Pagamento Pedido #${id}`
         }]);
       } else if (value === 'Pendente' && order.payment_status === 'Pago') {
@@ -278,6 +280,9 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
       return { product: p, quantity: i.quantity, customPrice: i.price_at_time };
     }) || [];
     setEditCart(initialCart);
+    
+    setEditManualTotal(order.total_amount);
+    
     setEditNotes(order.notes || '');
     setProductSearch('');
     setIsEditModalOpen(true);
@@ -286,8 +291,6 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
   const saveEditOrder = async () => {
     if (!editingOrder || editCart.length === 0) return;
     setIsSavingEdit(true);
-
-    const newTotal = editCart.reduce((acc, item) => acc + ((Number(item.customPrice) || 0) * item.quantity), 0);
 
     try {
       // 1. Delete old items
@@ -304,7 +307,14 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
       }
 
       // 3. Update total amount and notes on order
-      await supabase.from('orders').update({ total_amount: newTotal, notes: editNotes }).eq('id', editingOrder.id);
+      // Fix net_amount calculation if it's Maquineta
+      let netAmount = editManualTotal;
+      if (editingOrder.payment_method?.startsWith('Maquineta')) {
+         // rough fix: keep the same percentage discount as before
+         const oldRatio = editingOrder.total_amount > 0 ? (editingOrder.net_amount || editingOrder.total_amount) / editingOrder.total_amount : 1;
+         netAmount = editManualTotal * oldRatio;
+      }
+      await supabase.from('orders').update({ total_amount: editManualTotal, net_amount: netAmount, notes: editNotes }).eq('id', editingOrder.id);
 
       setIsEditModalOpen(false);
       fetchOrders();
@@ -526,7 +536,7 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
                   </div>
                 )}
 
-                {!isFinanceMode && profile?.role !== 'entregador' && (
+                {profile?.role !== 'entregador' && (
                   <div className="flex items-center gap-1 ml-2 border-l border-zinc-100 pl-3">
                     {order.payment_status === 'Pendente' && (
                       <button
@@ -537,13 +547,15 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
                         <Edit2 size={20} />
                       </button>
                     )}
-                    <button
-                      onClick={() => { setSelectedOrder(order); setIsDeleteModalOpen(true); }}
-                      className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                      title="Excluir Pedido"
-                    >
-                      <Trash2 size={20} />
-                    </button>
+                    {!isFinanceMode && (
+                      <button
+                        onClick={() => { setSelectedOrder(order); setIsDeleteModalOpen(true); }}
+                        className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                        title="Excluir Pedido"
+                      >
+                        <Trash2 size={20} />
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -681,11 +693,15 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-zinc-200">
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="font-bold text-zinc-500">Novo Total</span>
-                    <span className="text-xl font-black text-emerald-600">
-                      R$ {editCart.reduce((acc, item) => acc + ((Number(item.customPrice) || 0) * item.quantity), 0).toFixed(2)}
-                    </span>
+                  <div className="flex justify-between items-center mb-4 bg-zinc-50 p-3 rounded-xl border border-zinc-200">
+                    <span className="font-bold text-zinc-600 uppercase text-xs">Valor Total Final (R$)</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="w-32 px-3 py-2 text-lg bg-white border border-emerald-300 rounded-lg outline-none focus:border-emerald-600 font-black text-emerald-700 text-right"
+                      value={editManualTotal}
+                      onChange={e => setEditManualTotal(Number(e.target.value))}
+                    />
                   </div>
                   <div className="flex gap-3">
                     <button
