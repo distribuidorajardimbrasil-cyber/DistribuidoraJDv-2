@@ -215,9 +215,9 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
       {/* Left: Client & Product Selection */}
       <div className="lg:col-span-2 space-y-6">
         {/* Client Selection */}
-        <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm">
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none">
           <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-            <User size={20} className="text-emerald-600" />
+            <User size={20} className="text-emerald-600 dark:text-emerald-400" />
             Selecionar Cliente (Obrigatório)
           </h3>
           <div className="relative mb-4">
@@ -225,24 +225,24 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
             <input
               type="text"
               placeholder="Buscar cliente..."
-              className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-100 rounded-xl outline-none focus:border-emerald-500"
+              className="w-full pl-12 pr-4 py-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800/50 rounded-xl outline-none focus:border-emerald-500"
               value={customerSearch}
               onChange={e => setCustomerSearch(e.target.value)}
             />
           </div>
 
           {selectedCustomer ? (
-            <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
+            <div className="flex items-center justify-between p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 rounded-2xl">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold">
-                  {selectedCustomer.name.charAt(0)}
+                  {selectedCustomer.name.trim().charAt(0).toUpperCase()}
                 </div>
                 <div>
                   <p className="font-bold text-emerald-900">{selectedCustomer.name}</p>
-                  <p className="text-xs text-emerald-700">{selectedCustomer.phone}</p>
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400">{selectedCustomer.phone}</p>
                 </div>
               </div>
-              <button onClick={() => setSelectedCustomer(null)} className="text-emerald-700 hover:text-red-600 font-bold text-xs">Remover</button>
+              <button onClick={() => setSelectedCustomer(null)} className="text-emerald-700 dark:text-emerald-400 hover:text-red-600 dark:text-red-400 font-bold text-xs">Remover</button>
             </div>
           ) : (
             <div className="flex flex-wrap gap-2 overflow-auto max-h-[220px] pb-2">
@@ -250,11 +250,11 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
                 <button
                   key={customer.id}
                   onClick={() => setSelectedCustomer(customer)}
-                  className="flex-none w-[180px] sm:w-[220px] text-left p-3 bg-zinc-50 border border-zinc-100 rounded-xl hover:border-emerald-200 hover:bg-emerald-50 transition-all text-sm font-medium"
+                  className="flex-none w-[180px] sm:w-[220px] text-left p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800/50 rounded-xl hover:border-emerald-200 hover:bg-emerald-50 dark:bg-emerald-900/20 transition-all text-sm font-medium"
                 >
-                  <p className="font-bold text-zinc-900 truncate">{customer.name}</p>
+                  <p className="font-bold text-zinc-900 dark:text-zinc-50 truncate">{customer.name}</p>
                   {(customer.phone || customer.address) && (
-                    <p className="text-[10px] text-zinc-500 font-normal mt-1 leading-tight line-clamp-2">
+                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-normal mt-1 leading-tight line-clamp-2">
                       {customer.phone} {customer.phone && customer.address ? '• ' : ''}{customer.address}
                     </p>
                   )}
@@ -265,9 +265,9 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
         </div>
 
         {/* Product Selection */}
-        <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm">
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none">
           <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-            <ShoppingBag size={20} className="text-emerald-600" />
+            <ShoppingBag size={20} className="text-emerald-600 dark:text-emerald-400" />
             Selecionar Produtos
           </h3>
           <div className="relative mb-6">
@@ -275,7 +275,7 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
             <input
               type="text"
               placeholder="Buscar produto..."
-              className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-100 rounded-xl outline-none focus:border-emerald-500"
+              className="w-full pl-12 pr-4 py-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800/50 rounded-xl outline-none focus:border-emerald-500"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
@@ -288,19 +288,19 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
                 onClick={() => addToCart(product)}
                 disabled={product.stock_quantity <= 0}
                 className={`p-4 rounded-2xl border text-left transition-all ${product.stock_quantity <= 0
-                  ? 'bg-zinc-50 border-zinc-100 opacity-50 cursor-not-allowed'
-                  : 'bg-white border-zinc-100 hover:border-emerald-200 hover:bg-emerald-50/30'
+                  ? 'bg-zinc-50 dark:bg-zinc-950 border-zinc-100 dark:border-zinc-800/50 opacity-50 cursor-not-allowed'
+                  : 'bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800/50 hover:border-emerald-200 hover:bg-emerald-50 dark:bg-emerald-900/20/30'
                   }`}
               >
                 <div className="flex justify-between items-start mb-2">
-                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-zinc-100 rounded-md text-zinc-500 flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800/50 rounded-md text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
                     <span>{getEmoji(product.category)}</span>
                     {product.category}
                   </span>
-                  <span className="font-bold text-emerald-600">R$ {product.price_sell.toFixed(2)}</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">R$ {product.price_sell.toFixed(2)}</span>
                 </div>
-                <p className="font-bold text-zinc-900">{product.name}</p>
-                <p className={`text-xs mt-1 ${product.stock_quantity <= product.stock_min ? 'text-red-500 font-bold' : 'text-zinc-400'}`}>
+                <p className="font-bold text-zinc-900 dark:text-zinc-50">{product.name}</p>
+                <p className={`text-xs mt-1 ${product.stock_quantity <= product.stock_min ? 'text-red-500 dark:text-red-400 font-bold' : 'text-zinc-400'}`}>
                   Estoque: {product.stock_quantity} un
                 </p>
               </button>
@@ -311,20 +311,20 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
 
       {/* Right: Cart & Summary */}
       <div className="space-y-6">
-        <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm sticky top-8">
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none sticky top-8">
           <h3 className="text-lg font-bold mb-6">Resumo do Pedido</h3>
 
           <div className="space-y-4 mb-8 max-h-[300px] overflow-y-auto pr-2">
             {cart.length > 0 ? cart.map(item => (
               <div key={item.product.id} className="flex items-center justify-between gap-4">
                 <div className="flex-1">
-                  <p className="font-bold text-sm text-zinc-900">{item.product.name}</p>
+                  <p className="font-bold text-sm text-zinc-900 dark:text-zinc-50">{item.product.name}</p>
                   <div className="flex items-center gap-1 mt-1">
                     <span className="text-xs text-zinc-400 font-medium">R$</span>
                     <input
                       type="number"
                       step="0.01"
-                      className="w-20 px-2 py-0.5 text-xs bg-zinc-50 border border-zinc-200 rounded-md outline-none focus:border-emerald-500 font-bold text-emerald-700"
+                      className="w-20 px-2 py-0.5 text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-md outline-none focus:border-emerald-500 font-bold text-emerald-700 dark:text-emerald-400"
                       value={item.customPrice}
                       onChange={(e) => updateCustomPrice(item.product.id, e.target.value)}
                     />
@@ -332,9 +332,9 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <button onClick={() => removeFromCart(item.product.id)} className="p-1 hover:bg-zinc-100 rounded-md text-zinc-400"><Minus size={16} /></button>
+                  <button onClick={() => removeFromCart(item.product.id)} className="p-1 hover:bg-zinc-100 dark:bg-zinc-800/50 rounded-md text-zinc-400"><Minus size={16} /></button>
                   <span className="font-bold text-sm w-4 text-center">{item.quantity}</span>
-                  <button onClick={() => addToCart(item.product)} className="p-1 hover:bg-zinc-100 rounded-md text-emerald-600"><Plus size={16} /></button>
+                  <button onClick={() => addToCart(item.product)} className="p-1 hover:bg-zinc-100 dark:bg-zinc-800/50 rounded-md text-emerald-600 dark:text-emerald-400"><Plus size={16} /></button>
                 </div>
               </div>
             )) : (
@@ -342,10 +342,10 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
             )}
           </div>
 
-          <div className="space-y-4 pt-6 border-t border-zinc-100">
+          <div className="space-y-4 pt-6 border-t border-zinc-100 dark:border-zinc-800/50">
             <div className="flex items-center justify-between">
-              <span className="text-zinc-500 font-medium">Total</span>
-              <span className="text-2xl font-bold text-emerald-600">R$ {total.toFixed(2)}</span>
+              <span className="text-zinc-500 dark:text-zinc-400 font-medium">Total</span>
+              <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">R$ {total.toFixed(2)}</span>
             </div>
 
             <div className="space-y-3">
@@ -359,7 +359,7 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
                       if (method !== 'Maquineta') setPaymentSubMethod('');
                       else if (!paymentSubMethod) setPaymentSubMethod('Débito');
                     }}
-                    className={`py-2 text-xs font-bold rounded-xl border transition-all ${paymentMethod === method ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-white border-zinc-200 text-zinc-500 hover:border-zinc-300'
+                    className={`py-2 text-xs font-bold rounded-xl border transition-all ${paymentMethod === method ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 hover:border-zinc-300'
                       }`}
                   >
                     {method}
@@ -368,12 +368,12 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
               </div>
 
               {paymentMethod === 'Maquineta' && (
-                <div className="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-zinc-100">
+                <div className="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/50">
                   {['Débito', 'Crédito', 'Pix'].map(sub => (
                     <button
                       key={sub}
                       onClick={() => setPaymentSubMethod(sub)}
-                      className={`py-1.5 text-[10px] font-bold rounded-lg border transition-all ${paymentSubMethod === sub ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-indigo-50 border-indigo-100 text-indigo-600 hover:bg-indigo-100'
+                      className={`py-1.5 text-[10px] font-bold rounded-lg border transition-all ${paymentSubMethod === sub ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-100 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:bg-indigo-900/40'
                         }`}
                     >
                       {sub}
@@ -389,7 +389,7 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
                 <select
                   value={paymentStatus}
                   onChange={e => setPaymentStatus(e.target.value)}
-                  className="w-full p-2 text-xs font-bold bg-zinc-50 border border-zinc-100 rounded-xl outline-none"
+                  className="w-full p-2 text-xs font-bold bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800/50 rounded-xl outline-none"
                 >
                   <option value="Pago">Pago</option>
                   <option value="Pendente">Pendente</option>
@@ -400,7 +400,7 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
                 <select
                   value={deliveryStatus}
                   onChange={e => setDeliveryStatus(e.target.value)}
-                  className="w-full p-2 text-xs font-bold bg-zinc-50 border border-zinc-100 rounded-xl outline-none"
+                  className="w-full p-2 text-xs font-bold bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800/50 rounded-xl outline-none"
                 >
                   <option value="Em preparo">Em preparo</option>
                   <option value="Saiu para entrega">Saiu entrega</option>
@@ -412,7 +412,7 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
             <div>
               <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Observação (Opcional)</label>
               <textarea
-                className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-emerald-500 text-sm resize-none"
+                className="w-full p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-emerald-500 text-sm resize-none"
                 placeholder="Ex: Troco para 50, entregar na portaria..."
                 rows={2}
                 value={orderNotes}
@@ -423,7 +423,7 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
             <button
               onClick={handleSubmit}
               disabled={cart.length === 0 || !selectedCustomer}
-              className="w-full py-4 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all disabled:opacity-50 disabled:shadow-none mt-4 flex items-center justify-center gap-2"
+              className="w-full py-4 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg dark:shadow-none shadow-emerald-100 hover:bg-emerald-700 transition-all disabled:opacity-50 disabled:shadow-none mt-4 flex items-center justify-center gap-2"
             >
               <CheckCircle size={20} />
               Finalizar Pedido

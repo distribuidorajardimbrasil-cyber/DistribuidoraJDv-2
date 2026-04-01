@@ -369,8 +369,8 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-4 border border-zinc-200 rounded-xl shadow-lg">
-          <p className="font-bold text-zinc-800 mb-2">{label}</p>
+        <div className="bg-white dark:bg-zinc-900 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg dark:shadow-none">
+          <p className="font-bold text-zinc-800 dark:text-zinc-200 mb-2">{label}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} className="text-sm font-medium" style={{ color: entry.color }}>
               {entry.name}: {formatCurrency(entry.value)}
@@ -388,55 +388,55 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold">Taxas e Gastos da Maquineta</h2>
-            <p className="text-zinc-500">Configure as taxas de cartão e veja sua dimensão de gastos em tarifas.</p>
+            <p className="text-zinc-500 dark:text-zinc-400">Configure as taxas de cartão e veja sua dimensão de gastos em tarifas.</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-2xl border border-zinc-100 shadow-sm">
-            <h3 className="text-zinc-500 font-medium mb-1">Gasto Hoje</h3>
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-100 dark:border-zinc-800/50 shadow-sm dark:shadow-none">
+            <h3 className="text-zinc-500 dark:text-zinc-400 font-medium mb-1">Gasto Hoje</h3>
             <p className="text-3xl font-bold text-rose-600">
               R$ {feeStats.daily.toFixed(2)}
             </p>
           </div>
-          <div className="bg-white p-6 rounded-2xl border border-zinc-100 shadow-sm">
-            <h3 className="text-zinc-500 font-medium mb-1">Gasto Neste Mês</h3>
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-100 dark:border-zinc-800/50 shadow-sm dark:shadow-none">
+            <h3 className="text-zinc-500 dark:text-zinc-400 font-medium mb-1">Gasto Neste Mês</h3>
             <p className="text-3xl font-bold text-rose-600">
               R$ {feeStats.monthly.toFixed(2)}
             </p>
           </div>
-          <div className="bg-white p-6 rounded-2xl border border-zinc-100 shadow-sm">
-            <h3 className="text-zinc-500 font-medium mb-1">Gasto Neste Ano</h3>
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-100 dark:border-zinc-800/50 shadow-sm dark:shadow-none">
+            <h3 className="text-zinc-500 dark:text-zinc-400 font-medium mb-1">Gasto Neste Ano</h3>
             <p className="text-3xl font-bold text-rose-600">
               R$ {feeStats.yearly.toFixed(2)}
             </p>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-zinc-200">
-          <div className="p-6 border-b border-zinc-200">
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm dark:shadow-none border border-zinc-200 dark:border-zinc-800">
+          <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
             <h3 className="font-bold flex items-center gap-2">
-              <BarChart2 size={20} className="text-indigo-600" />
+              <BarChart2 size={20} className="text-indigo-600 dark:text-indigo-400" />
               Tabela de Taxas
             </h3>
-            <p className="text-sm text-zinc-500 mt-1">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
               Estes valores serão descontados automaticamente das vendas realizadas na Maquineta e não entrarão para a sua Receita visualizada no Dashboard.
             </p>
           </div>
           <div className="p-0 overflow-auto">
             <table className="w-full min-w-max text-left border-collapse">
               <thead>
-                <tr className="bg-zinc-50 border-b border-zinc-200">
-                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">Método</th>
-                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase">Taxa Vigente (%)</th>
-                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase text-right">Ação</th>
+                <tr className="bg-zinc-50 dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800">
+                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase">Método</th>
+                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase">Taxa Vigente (%)</th>
+                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase text-right">Ação</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
                 {rates.map(rate => (
-                  <tr key={rate.id} className="hover:bg-zinc-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-zinc-900 flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                  <tr key={rate.id} className="hover:bg-zinc-50 dark:bg-zinc-950 transition-colors">
+                    <td className="px-6 py-4 font-medium text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 flex items-center justify-center">
                         <DollarSign size={16} />
                       </div>
                       Maquineta - {rate.method_name}
@@ -451,10 +451,10 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
                             onChange={(e) => setEditingRateValue(parseFloat(e.target.value) || 0)}
                             className="w-24 px-3 py-1.5 border border-indigo-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20"
                           />
-                          <span className="text-zinc-500 font-bold">%</span>
+                          <span className="text-zinc-500 dark:text-zinc-400 font-bold">%</span>
                         </div>
                       ) : (
-                        <span className="font-bold text-lg text-indigo-700">{rate.rate_percentage}%</span>
+                        <span className="font-bold text-lg text-indigo-700 dark:text-indigo-400">{rate.rate_percentage}%</span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -462,7 +462,7 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
                         <div className="flex justify-end gap-2">
                           <button
                             onClick={() => setEditingRateId(null)}
-                            className="text-xs font-bold px-3 py-1.5 rounded-lg text-zinc-500 hover:bg-zinc-200"
+                            className="text-xs font-bold px-3 py-1.5 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200"
                           >
                             Cancelar
                           </button>
@@ -479,7 +479,7 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
                             setEditingRateId(rate.id);
                             setEditingRateValue(rate.rate_percentage);
                           }}
-                          className="text-xs font-bold px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg transition-colors"
+                          className="text-xs font-bold px-4 py-2 bg-zinc-100 dark:bg-zinc-800/50 hover:bg-zinc-200 text-zinc-700 dark:text-zinc-300 rounded-lg transition-colors"
                         >
                           Editar Taxa
                         </button>
@@ -500,24 +500,24 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold">Financeiro</h2>
-          <p className="text-zinc-500">Controle de entradas, saídas e relatórios.</p>
+          <p className="text-zinc-500 dark:text-zinc-400">Controle de entradas, saídas e relatórios.</p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="bg-zinc-900 text-white px-5 py-2.5 rounded-xl font-bold shadow-md hover:bg-black transition-all flex items-center justify-center gap-2"
+          className="bg-zinc-900 text-white px-5 py-2.5 rounded-xl font-bold shadow-md dark:shadow-none hover:bg-black transition-all flex items-center justify-center gap-2"
         >
           <Plus size={20} />
           Nova Despesa
         </button>
       </div>
 
-      <div className="bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm flex flex-col xl:flex-row gap-4 xl:items-center justify-between">
-        <div className="flex flex-wrap items-center bg-zinc-100 p-1 rounded-xl">
+      <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none flex flex-col xl:flex-row gap-4 xl:items-center justify-between">
+        <div className="flex flex-wrap items-center bg-zinc-100 dark:bg-zinc-800/50 p-1 rounded-xl">
           {(['daily', 'weekly', 'monthly'] as Period[]).map((p) => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${period === p ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+              className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${period === p ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm dark:shadow-none' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:text-zinc-300'
                 }`}
             >
               {p === 'daily' ? 'Diário' : p === 'weekly' ? 'Semanal' : 'Mensal'}
@@ -525,12 +525,12 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-100 p-2 px-3 rounded-xl">
+          <div className="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800/50 p-2 px-3 rounded-xl">
             <Filter size={18} className="text-zinc-400" />
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="bg-transparent border-none outline-none font-bold text-emerald-700 cursor-pointer text-sm"
+              className="bg-transparent border-none outline-none font-bold text-emerald-700 dark:text-emerald-400 cursor-pointer text-sm"
             >
               <option value="all">Resumo (Geral)</option>
               {categories.map(cat => (
@@ -538,13 +538,13 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
               ))}
             </select>
           </div>
-          <div className="flex items-center gap-3 bg-zinc-50 border border-zinc-100 p-2 px-4 rounded-xl">
+          <div className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800/50 p-2 px-4 rounded-xl">
             <CalendarIcon size={20} className="text-zinc-400" />
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-transparent border-none outline-none font-bold text-zinc-700 cursor-pointer"
+              className="bg-transparent border-none outline-none font-bold text-zinc-700 dark:text-zinc-300 cursor-pointer"
             />
           </div>
         </div>
@@ -552,47 +552,47 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm">
-          <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-4">
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none">
+          <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center mb-4">
             <TrendingUp size={20} />
           </div>
           <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Entradas ({period === 'daily' ? 'Dia' : period === 'weekly' ? 'Semana' : 'Mês'})</p>
-          <p className="text-2xl font-bold mt-1 text-emerald-600">{formatCurrency(stats.periodTotal)}</p>
+          <p className="text-2xl font-bold mt-1 text-emerald-600 dark:text-emerald-400">{formatCurrency(stats.periodTotal)}</p>
         </div>
-        <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm">
-          <div className="w-10 h-10 bg-red-50 text-red-600 rounded-xl flex items-center justify-center mb-4">
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none">
+          <div className="w-10 h-10 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl flex items-center justify-center mb-4">
             <TrendingDown size={20} />
           </div>
           <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Saídas ({period === 'daily' ? 'Dia' : period === 'weekly' ? 'Semana' : 'Mês'})</p>
-          <p className="text-2xl font-bold mt-1 text-red-600">{formatCurrency(stats.periodExpenses)}</p>
+          <p className="text-2xl font-bold mt-1 text-red-600 dark:text-red-400">{formatCurrency(stats.periodExpenses)}</p>
         </div>
-        <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm">
-          <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-4">
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none">
+          <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center mb-4">
             <DollarSign size={20} />
           </div>
           <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Lucro Bruto (Estimado)</p>
-          <p className="text-2xl font-bold mt-1 text-indigo-600">{formatCurrency(stats.profit)}</p>
+          <p className="text-2xl font-bold mt-1 text-indigo-600 dark:text-indigo-400">{formatCurrency(stats.profit)}</p>
         </div>
       </div>
 
       {/* Category Quantities (Only show if filtering by a specific category) */}
       {filterCategory !== 'all' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between">
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none flex items-center justify-between">
             <div>
               <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Quantidade que Entrou ({filterCategory})</p>
-              <p className="text-2xl font-bold text-zinc-800 mt-1">{categoryQuantities.in} un.</p>
+              <p className="text-2xl font-bold text-zinc-800 dark:text-zinc-200 mt-1">{categoryQuantities.in} un.</p>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400">
+            <div className="w-12 h-12 rounded-xl bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center text-zinc-400">
                <ArrowDownRight size={20} />
             </div>
           </div>
-          <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between">
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none flex items-center justify-between">
             <div>
               <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Quantidade que Saiu ({filterCategory})</p>
-              <p className="text-2xl font-bold text-zinc-800 mt-1">{categoryQuantities.out} un.</p>
+              <p className="text-2xl font-bold text-zinc-800 dark:text-zinc-200 mt-1">{categoryQuantities.out} un.</p>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400">
+            <div className="w-12 h-12 rounded-xl bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center text-zinc-400">
                <ArrowUpRight size={20} />
             </div>
           </div>
@@ -602,23 +602,23 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
       {/* Category Quantities (Only show if filtering by a specific category) */}
       {filterCategory !== 'all' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between">
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none flex items-center justify-between">
             <div>
               <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Quantidade que Entrou ({filterCategory})</p>
-              <p className="text-2xl font-bold text-zinc-800 mt-1">{categoryQuantities.in} un.</p>
+              <p className="text-2xl font-bold text-zinc-800 dark:text-zinc-200 mt-1">{categoryQuantities.in} un.</p>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex items-center justify-between">
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none flex items-center justify-between">
             <div>
               <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Quantidade que Saiu ({filterCategory})</p>
-              <p className="text-2xl font-bold text-zinc-800 mt-1">{categoryQuantities.out} un.</p>
+              <p className="text-2xl font-bold text-zinc-800 dark:text-zinc-200 mt-1">{categoryQuantities.out} un.</p>
             </div>
           </div>
         </div>
       )}
 
       {/* Chart Section */}
-      <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm">
+      <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none">
         <div className="flex items-center gap-2 mb-6">
           <BarChart2 size={20} className="text-zinc-400" />
           <h3 className="font-bold text-lg">Resumo Financeiro</h3>
@@ -639,8 +639,8 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
       </div>
 
       {/* Transactions History */}
-      <div className="bg-white rounded-3xl border border-zinc-200 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
+      <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none overflow-hidden">
+        <div className="p-6 border-b border-zinc-100 dark:border-zinc-800/50 flex items-center justify-between">
           <h3 className="font-bold text-lg flex items-center gap-2">
             <History size={20} className="text-zinc-400" />
             Movimentações do Período
@@ -648,47 +648,47 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
         </div>
         <div className="overflow-x-auto">
           {transactions.length === 0 ? (
-            <div className="p-10 text-center text-zinc-500 font-medium">
+            <div className="p-10 text-center text-zinc-500 dark:text-zinc-400 font-medium">
               Nenhuma movimentação encontrada para o período selecionado.
             </div>
           ) : (
             <table className="w-full text-left">
-              <thead className="bg-zinc-50 border-b border-zinc-200">
+              <thead className="bg-zinc-50 dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800">
                 <tr>
-                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-wider">Data</th>
-                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-wider">Descrição</th>
-                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-wider">Tipo</th>
-                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-wider text-right">Valor</th>
-                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-wider text-right w-10"></th>
+                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Data</th>
+                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Descrição</th>
+                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Tipo</th>
+                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider text-right">Valor</th>
+                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider text-right w-10"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
                 {transactions.map(tx => (
-                  <tr key={tx.id} className="hover:bg-zinc-50 transition-colors">
-                    <td className="px-6 py-4 text-sm text-zinc-500">
+                  <tr key={tx.id} className="hover:bg-zinc-50 dark:bg-zinc-950 transition-colors">
+                    <td className="px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">
                       {new Date(tx.created_at).toLocaleString('pt-BR')}
                     </td>
                     <td
-                      className="px-6 py-4 font-medium text-zinc-900 cursor-pointer hover:text-emerald-600 flex items-center gap-2 group"
+                      className="px-6 py-4 font-medium text-zinc-900 dark:text-zinc-50 cursor-pointer hover:text-emerald-600 dark:text-emerald-400 flex items-center gap-2 group"
                       onClick={() => fetchTransactionDetails(tx)}
                     >
                       {tx.description}
                       {tx.description.includes('Pedido #') && <Info size={14} className="text-zinc-300 group-hover:text-emerald-400" />}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${tx.type === 'income' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${tx.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:text-red-400'
                         }`}>
                         {tx.type === 'income' ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
                         {tx.type === 'income' ? 'Entrada' : 'Saída'}
                       </span>
                     </td>
-                    <td className={`px-6 py-4 text-right font-bold ${tx.type === 'income' ? 'text-emerald-600' : 'text-red-600'}`}>
+                    <td className={`px-6 py-4 text-right font-bold ${tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                       {tx.type === 'income' ? '+' : '-'} {formatCurrency(tx.amount)}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <button
                         onClick={() => { setSelectedTransaction(tx); setIsDeleteModalOpen(true); }}
-                        className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                        className="p-2 text-zinc-400 hover:text-red-500 dark:text-red-400 hover:bg-red-50 dark:bg-red-900/20 rounded-lg transition-all"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -704,16 +704,16 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
       {/* New Transaction Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl w-full max-w-md p-8 shadow-2xl dark:shadow-none">
             <h3 className="text-xl font-bold mb-6">Registrar Movimentação</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-zinc-700 mb-1">Tipo</label>
+                <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1">Tipo</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, type: 'income' })}
-                    className={`py-3 rounded-xl font-bold transition-all ${formData.type === 'income' ? 'bg-emerald-600 text-white' : 'bg-zinc-100 text-zinc-500'
+                    className={`py-3 rounded-xl font-bold transition-all ${formData.type === 'income' ? 'bg-emerald-600 text-white' : 'bg-zinc-100 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400'
                       }`}
                   >
                     Entrada
@@ -721,7 +721,7 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, type: 'expense' })}
-                    className={`py-3 rounded-xl font-bold transition-all ${formData.type === 'expense' ? 'bg-red-600 text-white' : 'bg-zinc-100 text-zinc-500'
+                    className={`py-3 rounded-xl font-bold transition-all ${formData.type === 'expense' ? 'bg-red-600 text-white' : 'bg-zinc-100 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400'
                       }`}
                   >
                     Saída
@@ -731,9 +731,9 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
               {formData.type === 'expense' && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-bold text-zinc-700 mb-1">Categoria (Opcional)</label>
+                    <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1">Categoria (Opcional)</label>
                     <select
-                      className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-500"
+                      className="w-full p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-zinc-500"
                       value={formData.category}
                       onChange={e => setFormData({ ...formData, category: e.target.value })}
                     >
@@ -744,10 +744,10 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-zinc-700 mb-1">Quantidade</label>
+                    <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1">Quantidade</label>
                     <input
                       type="number" min="0" step="1"
-                      className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-500"
+                      className="w-full p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-zinc-500"
                       value={formData.quantity}
                       onChange={e => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
                     />
@@ -755,29 +755,29 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
                 </div>
               )}
               <div>
-                <label className="block text-sm font-bold text-zinc-700 mb-1">Valor</label>
+                <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1">Valor</label>
                 <input
                   required
                   type="number" step="0.01"
-                  className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-500"
+                  className="w-full p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-zinc-500"
                   value={formData.amount}
                   onChange={e => setFormData({ ...formData, amount: parseFloat(e.target.value) })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-zinc-700 mb-1">Descrição</label>
+                <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1">Descrição</label>
                 <input
                   required
                   type="text"
                   placeholder="Ex: Pagamento de luz, Compra de estoque..."
-                  className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-zinc-500"
+                  className="w-full p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-zinc-500"
                   value={formData.description}
                   onChange={e => setFormData({ ...formData, description: e.target.value })}
                 />
               </div>
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 bg-zinc-100 text-zinc-600 font-bold rounded-xl hover:bg-zinc-200 transition-all">Cancelar</button>
-                <button type="submit" className="flex-1 py-3 bg-zinc-900 text-white font-bold rounded-xl hover:bg-black shadow-lg shadow-zinc-100 transition-all">Salvar</button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 bg-zinc-100 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 font-bold rounded-xl hover:bg-zinc-200 transition-all">Cancelar</button>
+                <button type="submit" className="flex-1 py-3 bg-zinc-900 text-white font-bold rounded-xl hover:bg-black shadow-lg dark:shadow-none shadow-zinc-100 transition-all">Salvar</button>
               </div>
             </form>
           </div>
@@ -786,25 +786,25 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl border border-red-100 animate-in zoom-in-95 duration-200 text-center">
-            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-3xl flex items-center justify-center mb-6 mx-auto">
+          <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl dark:shadow-none border border-red-100 animate-in zoom-in-95 duration-200 text-center">
+            <div className="w-16 h-16 bg-red-100 text-red-600 dark:text-red-400 rounded-3xl flex items-center justify-center mb-6 mx-auto">
               <ShieldAlert size={32} />
             </div>
-            <h3 className="text-2xl font-black text-zinc-900 mb-2">Excluir Registro?</h3>
-            <p className="text-zinc-500 text-sm mb-8">
+            <h3 className="text-2xl font-black text-zinc-900 dark:text-zinc-50 mb-2">Excluir Registro?</h3>
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-8">
               Esta ação removerá permanentemente a movimentação <strong>"{selectedTransaction?.description}"</strong> e atualizará seus saldos.
             </p>
             <div className="flex flex-col gap-3">
               <button
                 disabled={isDeleting}
                 onClick={handleDeleteTransaction}
-                className="w-full py-4 bg-red-600 text-white font-bold rounded-2xl hover:bg-red-700 shadow-lg shadow-red-100 transition-all flex items-center justify-center gap-2"
+                className="w-full py-4 bg-red-600 text-white font-bold rounded-2xl hover:bg-red-700 shadow-lg dark:shadow-none shadow-red-100 transition-all flex items-center justify-center gap-2"
               >
                 {isDeleting ? 'Excluindo...' : 'Confirmar Exclusão'}
               </button>
               <button
                 onClick={() => setIsDeleteModalOpen(false)}
-                className="w-full py-2 text-zinc-400 font-bold hover:text-zinc-600 transition-all"
+                className="w-full py-2 text-zinc-400 font-bold hover:text-zinc-600 dark:text-zinc-400 transition-all"
               >
                 Cancelar
               </button>
@@ -816,24 +816,24 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
       {/* Transaction Details Modal */}
       {selectedTxForDetails && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+          <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl dark:shadow-none overflow-hidden flex flex-col max-h-[80vh]">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h3 className="text-xl font-bold">Detalhes da Movimentação</h3>
-                <p className="text-zinc-500 text-sm">{new Date(selectedTxForDetails.created_at).toLocaleString('pt-BR')}</p>
+                <p className="text-zinc-500 dark:text-zinc-400 text-sm">{new Date(selectedTxForDetails.created_at).toLocaleString('pt-BR')}</p>
               </div>
-              <button onClick={() => setSelectedTxForDetails(null)} className="p-2 hover:bg-zinc-100 rounded-full transition-colors">
+              <button onClick={() => setSelectedTxForDetails(null)} className="p-2 hover:bg-zinc-100 dark:bg-zinc-800/50 rounded-full transition-colors">
                 <X size={20} />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-6 pr-2">
-              <div className="p-6 rounded-3xl bg-zinc-50 border border-zinc-100 flex flex-col items-center text-center">
-                <span className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 ${selectedTxForDetails.type === 'income' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+              <div className="p-6 rounded-3xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800/50 flex flex-col items-center text-center">
+                <span className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 ${selectedTxForDetails.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400' : 'bg-red-100 text-red-600 dark:text-red-400'}`}>
                   {selectedTxForDetails.type === 'income' ? <ArrowUpRight size={24} /> : <ArrowDownRight size={24} />}
                 </span>
-                <p className="text-sm text-zinc-500 font-medium uppercase tracking-wider">{selectedTxForDetails.description}</p>
-                <p className={`text-3xl font-black mt-1 ${selectedTxForDetails.type === 'income' ? 'text-emerald-600' : 'text-red-600'}`}>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium uppercase tracking-wider">{selectedTxForDetails.description}</p>
+                <p className={`text-3xl font-black mt-1 ${selectedTxForDetails.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                   {selectedTxForDetails.type === 'income' ? '+' : '-'} {formatCurrency(selectedTxForDetails.amount)}
                 </p>
               </div>
@@ -844,28 +844,28 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
                 </div>
               ) : linkedOrderItems.length > 0 ? (
                 <div className="space-y-4">
-                  <div className="p-4 bg-zinc-50 border border-zinc-100 rounded-2xl flex items-center gap-3">
-                    <User size={18} className="text-zinc-500" />
+                  <div className="p-4 bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800/50 rounded-2xl flex items-center gap-3">
+                    <User size={18} className="text-zinc-500 dark:text-zinc-400" />
                     <div>
                       <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Cliente</p>
-                      <p className="font-bold text-zinc-800">{linkedOrderCustomerName}</p>
+                      <p className="font-bold text-zinc-800 dark:text-zinc-200">{linkedOrderCustomerName}</p>
                     </div>
                   </div>
 
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 mb-2">
                       <ShoppingBag size={16} className="text-zinc-400" />
-                      <h4 className="font-bold text-zinc-900">Produtos do Pedido</h4>
+                      <h4 className="font-bold text-zinc-900 dark:text-zinc-50">Produtos do Pedido</h4>
                     </div>
                     {linkedOrderItems.map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-center text-sm p-4 bg-white border border-zinc-100 rounded-2xl">
+                      <div key={idx} className="flex justify-between items-center text-sm p-4 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800/50 rounded-2xl">
                         <div className="flex items-center gap-3">
-                          <span className="w-8 h-8 flex items-center justify-center bg-zinc-100 rounded-lg text-xs font-bold text-zinc-500">
+                          <span className="w-8 h-8 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800/50 rounded-lg text-xs font-bold text-zinc-500 dark:text-zinc-400">
                             {item.quantity}x
                           </span>
-                          <span className="font-bold text-zinc-800">{item.product?.name}</span>
+                          <span className="font-bold text-zinc-800 dark:text-zinc-200">{item.product?.name}</span>
                         </div>
-                        <span className="font-medium text-emerald-600">R$ {(item.price_at_time * item.quantity).toFixed(2)}</span>
+                        <span className="font-medium text-emerald-600 dark:text-emerald-400">R$ {(item.price_at_time * item.quantity).toFixed(2)}</span>
                       </div>
                     ))}
                   </div>

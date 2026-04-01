@@ -164,12 +164,12 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     <div className="space-y-8">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-zinc-900">Olá, JD! 👋</h2>
-          <p className="text-zinc-500 font-medium">Aqui está o resumo da sua distribuidora hoje.</p>
+          <h2 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">Olá, JD! 👋</h2>
+          <p className="text-zinc-500 dark:text-zinc-400 font-medium">Aqui está o resumo da sua distribuidora hoje.</p>
         </div>
         <button
           onClick={() => onNavigate('new-order')}
-          className="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
+          className="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg dark:shadow-none shadow-emerald-200 hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
         >
           <PlusCircle size={20} />
           Novo Pedido
@@ -182,57 +182,57 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           title="Vendas Hoje"
           value={formatCurrency(stats.dailyTotal)}
           icon={DollarSign}
-          color="text-emerald-600"
-          bg="bg-emerald-50"
+          color="text-emerald-600 dark:text-emerald-400"
+          bg="bg-emerald-50 dark:bg-emerald-900/20"
         />
         <StatCard
           title="Vendas no Mês"
           value={formatCurrency(stats.monthlyTotal)}
           icon={TrendingUp}
-          color="text-blue-600"
-          bg="bg-blue-50"
+          color="text-blue-600 dark:text-blue-400"
+          bg="bg-blue-50 dark:bg-blue-900/20"
         />
         <StatCard
           title="Despesas (Mês)"
           value={formatCurrency(stats.monthlyExpenses)}
           icon={AlertTriangle}
-          color="text-red-600"
-          bg="bg-red-50"
+          color="text-red-600 dark:text-red-400"
+          bg="bg-red-50 dark:bg-red-900/20"
         />
         <StatCard
           title="Lucro Estimado"
           value={formatCurrency(stats.profit)}
           icon={CheckCircle}
-          color="text-indigo-600"
-          bg="bg-indigo-50"
+          color="text-indigo-600 dark:text-indigo-400"
+          bg="bg-indigo-50 dark:bg-indigo-900/20"
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Low Stock Alerts */}
-        <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm">
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-bold flex items-center gap-2">
               <AlertTriangle className="text-amber-500" size={20} />
               Estoque Baixo
             </h3>
-            <button onClick={() => onNavigate('products')} className="text-sm text-emerald-600 font-medium hover:underline">Ver tudo</button>
+            <button onClick={() => onNavigate('products')} className="text-sm text-emerald-600 dark:text-emerald-400 font-medium hover:underline">Ver tudo</button>
           </div>
           <div className="space-y-4">
             {lowStock.length > 0 ? lowStock.map(product => (
-              <div key={product.id} className="flex items-center justify-between p-4 bg-amber-50 rounded-2xl border border-amber-100">
+              <div key={product.id} className="flex items-center justify-between p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-100 dark:border-amber-900/50">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-xl">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center text-xl">
                     {getEmoji(product.category)}
                   </div>
                   <div>
-                    <p className="font-semibold text-zinc-900">{product.name}</p>
-                    <p className="text-xs text-amber-700">{product.category}</p>
+                    <p className="font-semibold text-zinc-900 dark:text-zinc-50">{product.name}</p>
+                    <p className="text-xs text-amber-700 dark:text-amber-400">{product.category}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-amber-900">{product.stock_quantity} un</p>
-                  <p className="text-[10px] text-amber-600 uppercase font-bold">Mín: {product.stock_min}</p>
+                  <p className="text-sm font-bold text-amber-900 dark:text-amber-100">{product.stock_quantity} un</p>
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 uppercase font-bold">Mín: {product.stock_min}</p>
                 </div>
               </div>
             )) : (
@@ -242,29 +242,29 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         </div>
 
         {/* Recent Orders */}
-        <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm">
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-bold flex items-center gap-2">
-              <ShoppingCart className="text-emerald-600" size={20} />
+              <ShoppingCart className="text-emerald-600 dark:text-emerald-400" size={20} />
               Pedidos Recentes
             </h3>
-            <button onClick={() => onNavigate('orders')} className="text-sm text-emerald-600 font-medium hover:underline">Ver todos</button>
+            <button onClick={() => onNavigate('orders')} className="text-sm text-emerald-600 dark:text-emerald-400 font-medium hover:underline">Ver todos</button>
           </div>
           <div className="space-y-4">
             {recentOrders.length > 0 ? recentOrders.map(order => (
-              <div key={order.id} className="flex items-center justify-between p-4 hover:bg-zinc-50 rounded-2xl transition-colors cursor-pointer border border-transparent hover:border-zinc-100">
+              <div key={order.id} className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:bg-zinc-950 rounded-2xl transition-colors cursor-pointer border border-transparent hover:border-zinc-100 dark:border-zinc-800/50">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-500">
+                  <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800/50 flex items-center justify-center text-zinc-500 dark:text-zinc-400">
                     <Users size={18} />
                   </div>
                   <div>
-                    <p className="font-semibold text-zinc-900">{order.customer_name || 'Consumidor Final'}</p>
+                    <p className="font-semibold text-zinc-900 dark:text-zinc-50">{order.customer_name || 'Consumidor Final'}</p>
                     <p className="text-xs text-zinc-400">{new Date(order.created_at).toLocaleDateString('pt-BR')}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-zinc-900">{formatCurrency(order.total_amount)}</p>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${order.payment_status === 'Pago' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                  <p className="font-bold text-zinc-900 dark:text-zinc-50">{formatCurrency(order.total_amount)}</p>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${order.payment_status === 'Pago' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400' : 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'
                     }`}>
                     {order.payment_status}
                   </span>
@@ -282,11 +282,11 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
 function StatCard({ title, value, icon: Icon, color, bg }: any) {
   return (
-    <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm">
+    <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none">
       <div className={`w-12 h-12 ${bg} ${color} rounded-2xl flex items-center justify-center mb-4`}>
         <Icon size={24} />
       </div>
-      <p className="text-sm text-zinc-500 font-medium">{title}</p>
+      <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">{title}</p>
       <p className="text-2xl font-bold mt-1">{value}</p>
     </div>
   );

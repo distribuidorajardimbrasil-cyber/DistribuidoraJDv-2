@@ -390,8 +390,8 @@ export default function Products() {
   const CustomChartTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-4 border border-zinc-200 rounded-xl shadow-lg">
-          <p className="font-bold text-zinc-800 mb-2">{label}</p>
+        <div className="bg-white dark:bg-zinc-900 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-lg dark:shadow-none">
+          <p className="font-bold text-zinc-800 dark:text-zinc-200 mb-2">{label}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} className="text-sm font-medium" style={{ color: entry.color || entry.payload?.color }}>
               {entry.name}: {entry.value} un
@@ -409,26 +409,26 @@ export default function Products() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold">Estoque de Produtos</h2>
-          <p className="text-zinc-500">Gerencie seus produtos e veja os relatórios de estoque.</p>
+          <p className="text-zinc-500 dark:text-zinc-400">Gerencie seus produtos e veja os relatórios de estoque.</p>
         </div>
         <div className="flex gap-2">
           {activeTab === 'products' && (
             <>
               <button
                 onClick={() => setIsCategoryModalOpen(true)}
-                className="bg-white text-zinc-600 px-5 py-2.5 rounded-xl font-bold border border-zinc-200 hover:bg-zinc-50 transition-all flex items-center justify-center gap-2"
+                className="bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 px-5 py-2.5 rounded-xl font-bold border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:bg-zinc-950 transition-all flex items-center justify-center gap-2"
               >
                 Categorias
               </button>
               <button
                 onClick={() => setIsProductListModalOpen(true)}
-                className="bg-emerald-50 text-emerald-700 px-5 py-2.5 rounded-xl font-bold border border-emerald-200 hover:bg-emerald-100 transition-all flex items-center justify-center gap-2"
+                className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-5 py-2.5 rounded-xl font-bold border border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-900/40 transition-all flex items-center justify-center gap-2"
               >
                 Produtos
               </button>
               <button
                 onClick={openAddModal}
-                className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-md hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
+                className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-md dark:shadow-none hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
               >
                 <Plus size={20} />
                 Novo Produto
@@ -438,10 +438,10 @@ export default function Products() {
         </div>
       </div>
 
-      <div className="flex border-b border-zinc-200 mb-6">
+      <div className="flex border-b border-zinc-200 dark:border-zinc-800 mb-6">
         <button
           onClick={() => setActiveTab('products')}
-          className={`pb-4 px-6 text-sm font-bold transition-all relative ${activeTab === 'products' ? 'text-emerald-600' : 'text-zinc-400 hover:text-zinc-600'}`}
+          className={`pb-4 px-6 text-sm font-bold transition-all relative ${activeTab === 'products' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400 hover:text-zinc-600 dark:text-zinc-400'}`}
         >
           <div className="flex items-center gap-2">
             <Package size={18} />
@@ -453,7 +453,7 @@ export default function Products() {
         </button>
         <button
           onClick={() => setActiveTab('reports')}
-          className={`pb-4 px-6 text-sm font-bold transition-all relative ${activeTab === 'reports' ? 'text-emerald-600' : 'text-zinc-400 hover:text-zinc-600'}`}
+          className={`pb-4 px-6 text-sm font-bold transition-all relative ${activeTab === 'reports' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400 hover:text-zinc-600 dark:text-zinc-400'}`}
         >
           <div className="flex items-center gap-2">
             <BarChart2 size={18} />
@@ -467,52 +467,52 @@ export default function Products() {
 
       {activeTab === 'products' ? (
         <>
-          <div className="bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm flex items-center gap-3">
+          <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none flex items-center gap-3">
             <Search className="text-zinc-400" size={20} />
             <input
               type="text"
               placeholder="Buscar por nome ou categoria..."
-              className="flex-1 bg-transparent border-none outline-none text-zinc-900"
+              className="flex-1 bg-transparent border-none outline-none text-zinc-900 dark:text-zinc-50"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
-          <div className="bg-white rounded-3xl border border-zinc-200 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-zinc-50 border-b border-zinc-200">
+                <thead className="bg-zinc-50 dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800">
                   <tr>
-                    <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-wider">Produto</th>
-                    <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-wider">Categoria</th>
-                    <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-wider">Preço (Venda)</th>
-                    <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-wider">Estoque</th>
-                    <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-wider text-right">Ações</th>
+                    <th className="px-6 py-4 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Produto</th>
+                    <th className="px-6 py-4 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Categoria</th>
+                    <th className="px-6 py-4 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Preço (Venda)</th>
+                    <th className="px-6 py-4 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Estoque</th>
+                    <th className="px-6 py-4 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {filteredProducts.map(product => (
-                    <tr key={product.id} className="hover:bg-zinc-50 transition-colors">
+                    <tr key={product.id} className="hover:bg-zinc-50 dark:bg-zinc-950 transition-colors">
                       <td className="px-6 py-4">
-                        <div className="font-semibold text-zinc-900">{product.name}</div>
+                        <div className="font-semibold text-zinc-900 dark:text-zinc-50">{product.name}</div>
                         <div className="text-xs text-zinc-400">Custo: R$ {product.price_cost.toFixed(2)}</div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="px-2.5 py-1 bg-zinc-100 text-zinc-700 rounded-full text-xs font-bold flex items-center gap-1.5 w-fit">
+                        <span className="px-2.5 py-1 bg-zinc-100 dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 rounded-full text-xs font-bold flex items-center gap-1.5 w-fit">
                           <span>{getCategoryEmoji(product.category)}</span>
                           {product.category}
                         </span>
                       </td>
-                      <td className="px-6 py-4 font-bold text-emerald-600">
+                      <td className="px-6 py-4 font-bold text-emerald-600 dark:text-emerald-400">
                         R$ {product.price_sell.toFixed(2)}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <span className={`font-bold ${product.stock_quantity <= product.stock_min ? 'text-red-600' : 'text-zinc-900'}`}>
+                          <span className={`font-bold ${product.stock_quantity <= product.stock_min ? 'text-red-600 dark:text-red-400' : 'text-zinc-900 dark:text-zinc-50'}`}>
                             {product.stock_quantity} un
                           </span>
                           {product.stock_quantity <= product.stock_min && (
-                            <AlertCircle size={14} className="text-red-500" />
+                            <AlertCircle size={14} className="text-red-500 dark:text-red-400" />
                           )}
                         </div>
                         <div className="text-[10px] text-zinc-400 uppercase font-bold">Mín: {product.stock_min}</div>
@@ -524,7 +524,7 @@ export default function Products() {
                             setSelectedProduct(product);
                             setIsStockModalOpen(true);
                           }}
-                          className="text-emerald-600 hover:text-emerald-700 p-2 rounded-lg hover:bg-emerald-50 transition-colors"
+                          className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:text-emerald-400 p-2 rounded-lg hover:bg-emerald-50 dark:bg-emerald-900/20 transition-colors"
                           title="Entrada de Estoque"
                         >
                           <ArrowUpCircle size={20} />
@@ -534,7 +534,7 @@ export default function Products() {
                             e.stopPropagation();
                             openEditModal(product);
                           }}
-                          className="text-blue-600 hover:text-blue-700 p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-700 p-2 rounded-lg hover:bg-blue-50 dark:bg-blue-900/20 transition-colors"
                           title="Editar Produto"
                         >
                           <Pencil size={18} />
@@ -545,7 +545,7 @@ export default function Products() {
                             setSelectedProduct(product);
                             setIsDeleteModalOpen(true);
                           }}
-                          className="text-red-500 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                          className="text-red-500 dark:text-red-400 hover:text-red-600 dark:text-red-400 p-2 rounded-lg hover:bg-red-50 dark:bg-red-900/20 transition-colors"
                           title="Excluir Produto"
                         >
                           <Trash2 size={18} />
@@ -561,13 +561,13 @@ export default function Products() {
       ) : (
         <div className="space-y-6">
           {/* Relatórios Section */}
-          <div className="bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm flex flex-col xl:flex-row gap-4 xl:items-center justify-between">
-            <div className="flex flex-wrap items-center bg-zinc-100 p-1 rounded-xl">
+          <div className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none flex flex-col xl:flex-row gap-4 xl:items-center justify-between">
+            <div className="flex flex-wrap items-center bg-zinc-100 dark:bg-zinc-800/50 p-1 rounded-xl">
               {(['daily', 'weekly', 'monthly'] as const).map((p) => (
                 <button
                   key={p}
                   onClick={() => setReportPeriod(p)}
-                  className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${reportPeriod === p ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+                  className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${reportPeriod === p ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm dark:shadow-none' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:text-zinc-300'
                     }`}
                 >
                   {p === 'daily' ? 'Diário' : p === 'weekly' ? 'Semanal' : 'Mensal'}
@@ -575,36 +575,36 @@ export default function Products() {
               ))}
             </div>
 
-            <div className="flex flex-wrap items-center bg-emerald-50 p-1 rounded-xl">
+            <div className="flex flex-wrap items-center bg-emerald-50 dark:bg-emerald-900/20 p-1 rounded-xl">
               <button
                 onClick={() => setChartType('bar')}
-                className={`px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2 ${chartType === 'bar' ? 'bg-emerald-600 text-white shadow-sm' : 'text-emerald-700 hover:bg-emerald-100'}`}
+                className={`px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2 ${chartType === 'bar' ? 'bg-emerald-600 text-white shadow-sm dark:shadow-none' : 'text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:bg-emerald-900/40'}`}
               >
                 <BarChart2 size={16} /> Barras
               </button>
               <button
                 onClick={() => setChartType('line')}
-                className={`px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2 ${chartType === 'line' ? 'bg-emerald-600 text-white shadow-sm' : 'text-emerald-700 hover:bg-emerald-100'}`}
+                className={`px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2 ${chartType === 'line' ? 'bg-emerald-600 text-white shadow-sm dark:shadow-none' : 'text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:bg-emerald-900/40'}`}
               >
                 <LineChartIcon size={16} /> Linhas
               </button>
               <button
                 onClick={() => setChartType('pie')}
-                className={`px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2 ${chartType === 'pie' ? 'bg-emerald-600 text-white shadow-sm' : 'text-emerald-700 hover:bg-emerald-100'}`}
+                className={`px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2 ${chartType === 'pie' ? 'bg-emerald-600 text-white shadow-sm dark:shadow-none' : 'text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:bg-emerald-900/40'}`}
               >
                 <PieChart size={16} /> Pizza
               </button>
             </div>
 
             <div className="flex flex-wrap items-center gap-4">
-              <div className="flex bg-zinc-50 border border-zinc-100 rounded-xl p-1 shadow-sm h-11">
+              <div className="flex bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800/50 rounded-xl p-1 shadow-sm dark:shadow-none h-11">
                 <select
                   value={filterCategory}
                   onChange={(e) => {
                     setFilterCategory(e.target.value);
                     setFilterProduct('all'); // Reset dropdown product cascade
                   }}
-                  className="bg-transparent border-none outline-none font-bold text-zinc-700 cursor-pointer px-3 text-sm border-r border-zinc-200"
+                  className="bg-transparent border-none outline-none font-bold text-zinc-700 dark:text-zinc-300 cursor-pointer px-3 text-sm border-r border-zinc-200 dark:border-zinc-800"
                 >
                   <option value="all">Todas as Categorias</option>
                   {categories.map(cat => (
@@ -614,7 +614,7 @@ export default function Products() {
                 <select
                   value={filterProduct}
                   onChange={(e) => setFilterProduct(e.target.value)}
-                  className="bg-transparent border-none outline-none font-bold text-emerald-700 cursor-pointer px-3 text-sm"
+                  className="bg-transparent border-none outline-none font-bold text-emerald-700 dark:text-emerald-400 cursor-pointer px-3 text-sm"
                   disabled={filterCategory === 'all'}
                 >
                   <option value="all">{filterCategory === 'all' ? 'Selecione a Categoria 1º' : 'Todos os Produtos'}</option>
@@ -626,22 +626,22 @@ export default function Products() {
                 </select>
               </div>
 
-              <div className="flex items-center gap-3 bg-zinc-50 border border-zinc-100 p-2 px-4 rounded-xl h-11">
+              <div className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800/50 p-2 px-4 rounded-xl h-11">
                 <CalendarIcon size={20} className="text-zinc-400" />
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="bg-transparent border-none outline-none font-bold text-zinc-700 cursor-pointer"
+                  className="bg-transparent border-none outline-none font-bold text-zinc-700 dark:text-zinc-300 cursor-pointer"
                 />
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm">
+            <div className="lg:col-span-2 bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none">
               <h3 className="font-bold text-lg flex items-center gap-2 mb-6">
-                <BarChart2 size={20} className="text-emerald-600" />
+                <BarChart2 size={20} className="text-emerald-600 dark:text-emerald-400" />
                 Gráfico de Movimentações
               </h3>
               <div className="h-[350px] w-full">
@@ -693,23 +693,23 @@ export default function Products() {
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm flex flex-col h-full max-h-[445px]">
+            <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none flex flex-col h-full max-h-[445px]">
               <h3 className="font-bold text-lg flex items-center gap-2 mb-4">
                 <History size={20} className="text-zinc-400" />
                 Histórico
               </h3>
               <div className="flex-1 overflow-y-auto pr-2 space-y-3">
                 {stockMovements.length === 0 ? (
-                  <p className="text-zinc-500 font-medium text-center py-10">Nenhum registro encontrado.</p>
+                  <p className="text-zinc-500 dark:text-zinc-400 font-medium text-center py-10">Nenhum registro encontrado.</p>
                 ) : (
                   stockMovements.map((mov) => (
-                    <div key={mov.id} className="p-3 bg-zinc-50 border border-zinc-100 rounded-xl flex items-center justify-between">
+                    <div key={mov.id} className="p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800/50 rounded-xl flex items-center justify-between">
                       <div>
-                        <p className="font-bold text-zinc-900 text-sm">{mov.product?.name || 'Produto Removido'}</p>
-                        <p className="text-xs text-zinc-500">{new Date(mov.created_at).toLocaleString('pt-BR')}</p>
+                        <p className="font-bold text-zinc-900 dark:text-zinc-50 text-sm">{mov.product?.name || 'Produto Removido'}</p>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(mov.created_at).toLocaleString('pt-BR')}</p>
                       </div>
                       <div className="text-right">
-                        <p className={`font-black text-sm flex items-center justify-end gap-1 ${mov.type === 'in' ? 'text-emerald-600' : 'text-red-600'}`}>
+                        <p className={`font-black text-sm flex items-center justify-end gap-1 ${mov.type === 'in' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                           {mov.type === 'in' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                           {mov.type === 'in' ? '+' : '-'}{mov.quantity} un
                         </p>
@@ -727,22 +727,22 @@ export default function Products() {
       {/* Product List Modal */}
       {isProductListModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-2xl p-8 shadow-2xl max-h-[80vh] flex flex-col">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl w-full max-w-2xl p-8 shadow-2xl dark:shadow-none max-h-[80vh] flex flex-col">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold">Produtos (Catálogo)</h3>
-              <button onClick={() => setIsProductListModalOpen(false)} className="p-2 hover:bg-zinc-100 rounded-full transition-colors text-zinc-400">
+              <button onClick={() => setIsProductListModalOpen(false)} className="p-2 hover:bg-zinc-100 dark:bg-zinc-800/50 rounded-full transition-colors text-zinc-400">
                 <CloseIcon size={20} />
               </button>
             </div>
 
-            <div className="flex justify-between items-center mb-4 pb-4 border-b border-zinc-100">
-              <p className="text-sm text-zinc-500">Gerencie a lista mestre (catálogo) de produtos e suas associações com as categorias.</p>
+            <div className="flex justify-between items-center mb-4 pb-4 border-b border-zinc-100 dark:border-zinc-800/50">
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">Gerencie a lista mestre (catálogo) de produtos e suas associações com as categorias.</p>
               <button
                 onClick={() => {
                   setIsProductListModalOpen(false);
                   openAddModal();
                 }}
-                className="bg-emerald-100 text-emerald-700 px-4 py-2 rounded-xl font-bold text-sm hover:bg-emerald-200 transition-colors flex items-center gap-1"
+                className="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 px-4 py-2 rounded-xl font-bold text-sm hover:bg-emerald-200 transition-colors flex items-center gap-1"
               >
                 <Plus size={16} /> Add Produto
               </button>
@@ -751,20 +751,20 @@ export default function Products() {
             <div className="flex-1 overflow-y-auto pr-2 space-y-3">
               {products.length === 0 ? (
                 <div className="text-center py-10">
-                  <p className="text-zinc-500 font-medium">Nenhum produto cadastrado no catálogo.</p>
+                  <p className="text-zinc-500 dark:text-zinc-400 font-medium">Nenhum produto cadastrado no catálogo.</p>
                 </div>
               ) : (
                 products.map(product => (
-                  <div key={product.id} className="p-4 bg-zinc-50 border border-zinc-100 rounded-xl flex items-center justify-between">
+                  <div key={product.id} className="p-4 bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800/50 rounded-xl flex items-center justify-between">
                     <div>
-                      <p className="font-bold text-zinc-900 border-b border-zinc-200 pb-1 mb-1">{product.name}</p>
-                      <p className="text-xs text-zinc-600 flex items-center gap-1">
-                        <span className="font-bold px-2 py-0.5 bg-zinc-200 text-zinc-700 rounded-md">Categoria:</span>
+                      <p className="font-bold text-zinc-900 dark:text-zinc-50 border-b border-zinc-200 dark:border-zinc-800 pb-1 mb-1">{product.name}</p>
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400 flex items-center gap-1">
+                        <span className="font-bold px-2 py-0.5 bg-zinc-200 text-zinc-700 dark:text-zinc-300 rounded-md">Categoria:</span>
                         {product.category}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <p className="mr-4 font-black text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg">
+                      <p className="mr-4 font-black text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1 rounded-lg">
                         R$ {product.price_sell.toFixed(2)}
                       </p>
                       <button
@@ -772,7 +772,7 @@ export default function Products() {
                           setIsProductListModalOpen(false);
                           openEditModal(product);
                         }}
-                        className="text-blue-600 hover:text-blue-700 p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                        className="text-blue-600 dark:text-blue-400 hover:text-blue-700 p-2 rounded-lg hover:bg-blue-50 dark:bg-blue-900/20 transition-colors"
                         title="Editar"
                       >
                         <Pencil size={18} />
@@ -783,7 +783,7 @@ export default function Products() {
                           setSelectedProduct(product);
                           setIsDeleteModalOpen(true);
                         }}
-                        className="text-red-500 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                        className="text-red-500 dark:text-red-400 hover:text-red-600 dark:text-red-400 p-2 rounded-lg hover:bg-red-50 dark:bg-red-900/20 transition-colors"
                         title="Excluir"
                       >
                         <Trash2 size={18} />
@@ -793,8 +793,8 @@ export default function Products() {
                 ))
               )}
             </div>
-            <div className="mt-6 pt-6 border-t border-zinc-100 text-right">
-              <button onClick={() => setIsProductListModalOpen(false)} className="px-6 py-2 bg-zinc-100 text-zinc-700 font-bold rounded-xl hover:bg-zinc-200">
+            <div className="mt-6 pt-6 border-t border-zinc-100 dark:border-zinc-800/50 text-right">
+              <button onClick={() => setIsProductListModalOpen(false)} className="px-6 py-2 bg-zinc-100 dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 font-bold rounded-xl hover:bg-zinc-200">
                 Fechar
               </button>
             </div>
@@ -805,24 +805,24 @@ export default function Products() {
       {/* New/Edit Product Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl w-full max-w-md p-8 shadow-2xl dark:shadow-none">
             <h3 className="text-xl font-bold mb-6">{isEditMode ? 'Editar Produto' : 'Cadastrar Novo Produto'}</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-zinc-700 mb-1">Nome do Produto</label>
+                <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1">Nome do Produto</label>
                 <input
                   required
                   type="text"
-                  className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-emerald-500"
+                  className="w-full p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-emerald-500"
                   value={formData.name}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-zinc-700 mb-1">Categoria</label>
+                <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1">Categoria</label>
                 <select
                   required
-                  className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-emerald-500"
+                  className="w-full p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-emerald-500"
                   value={formData.category}
                   onChange={e => setFormData({ ...formData, category: e.target.value })}
                 >
@@ -836,21 +836,21 @@ export default function Products() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-zinc-700 mb-1">Preço Custo</label>
+                  <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1">Preço Custo</label>
                   <input
                     required
                     type="number" step="0.01"
-                    className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-emerald-500"
+                    className="w-full p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-emerald-500"
                     value={formData.price_cost}
                     onChange={e => setFormData({ ...formData, price_cost: parseFloat(e.target.value) })}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-zinc-700 mb-1">Preço Venda</label>
+                  <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1">Preço Venda</label>
                   <input
                     required
                     type="number" step="0.01"
-                    className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-emerald-500"
+                    className="w-full p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-emerald-500"
                     value={formData.price_sell}
                     onChange={e => setFormData({ ...formData, price_sell: parseFloat(e.target.value) })}
                   />
@@ -858,29 +858,29 @@ export default function Products() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-zinc-700 mb-1">Estoque Inicial</label>
+                  <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1">Estoque Inicial</label>
                   <input
                     required
                     type="number"
-                    className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-emerald-500"
+                    className="w-full p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-emerald-500"
                     value={formData.stock_quantity}
                     onChange={e => setFormData({ ...formData, stock_quantity: parseInt(e.target.value) })}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-zinc-700 mb-1">Estoque Mínimo</label>
+                  <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1">Estoque Mínimo</label>
                   <input
                     required
                     type="number"
-                    className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-emerald-500"
+                    className="w-full p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-emerald-500"
                     value={formData.stock_min}
                     onChange={e => setFormData({ ...formData, stock_min: parseInt(e.target.value) })}
                   />
                 </div>
               </div>
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 bg-zinc-100 text-zinc-600 font-bold rounded-xl hover:bg-zinc-200 transition-all">Cancelar</button>
-                <button type="submit" className="flex-1 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-100 transition-all">Salvar</button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 bg-zinc-100 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 font-bold rounded-xl hover:bg-zinc-200 transition-all">Cancelar</button>
+                <button type="submit" className="flex-1 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg dark:shadow-none shadow-emerald-100 transition-all">Salvar</button>
               </div>
             </form>
           </div>
@@ -890,23 +890,23 @@ export default function Products() {
       {/* Stock Entry Modal */}
       {isStockModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl w-full max-w-sm p-8 shadow-2xl dark:shadow-none">
             <h3 className="text-xl font-bold mb-2">Entrada de Estoque</h3>
-            <p className="text-zinc-500 text-sm mb-6">{selectedProduct?.name}</p>
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-6">{selectedProduct?.name}</p>
             <form onSubmit={handleStockUpdate} className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-zinc-700 mb-1">Quantidade a Adicionar</label>
+                <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1">Quantidade a Adicionar</label>
                 <input
                   required
                   type="number"
-                  className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-emerald-500 text-2xl font-bold text-center"
+                  className="w-full p-4 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-emerald-500 text-2xl font-bold text-center"
                   value={stockAmount}
                   onChange={e => setStockAmount(parseInt(e.target.value))}
                 />
               </div>
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setIsStockModalOpen(false)} className="flex-1 py-3 bg-zinc-100 text-zinc-600 font-bold rounded-xl hover:bg-zinc-200 transition-all">Cancelar</button>
-                <button type="submit" className="flex-1 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-100 transition-all">Confirmar</button>
+                <button type="button" onClick={() => setIsStockModalOpen(false)} className="flex-1 py-3 bg-zinc-100 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 font-bold rounded-xl hover:bg-zinc-200 transition-all">Cancelar</button>
+                <button type="submit" className="flex-1 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg dark:shadow-none shadow-emerald-100 transition-all">Confirmar</button>
               </div>
             </form>
           </div>
@@ -915,22 +915,22 @@ export default function Products() {
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl w-full max-w-sm p-8 shadow-2xl dark:shadow-none">
             <h3 className="text-xl font-bold mb-2">Excluir Produto</h3>
-            <p className="text-zinc-500 text-sm mb-6">
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-6">
               Tem certeza que deseja excluir <strong>{selectedProduct?.name}</strong>? Esta ação não pode ser desfeita.
             </p>
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => setIsDeleteModalOpen(false)}
-                className="flex-1 py-3 bg-zinc-100 text-zinc-600 font-bold rounded-xl hover:bg-zinc-200 transition-all"
+                className="flex-1 py-3 bg-zinc-100 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 font-bold rounded-xl hover:bg-zinc-200 transition-all"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleDelete}
-                className="flex-1 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 shadow-lg shadow-red-100 transition-all"
+                className="flex-1 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 shadow-lg dark:shadow-none shadow-red-100 transition-all"
               >
                 Excluir
               </button>
@@ -941,16 +941,16 @@ export default function Products() {
       {/* Category Management Modal */}
       {isCategoryModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-lg p-8 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl w-full max-w-lg p-8 shadow-2xl dark:shadow-none overflow-hidden flex flex-col max-h-[90vh]">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold italic">Gerenciar Categorias</h3>
-              <button onClick={() => { setIsCategoryModalOpen(false); setCategoryError(null); }} className="text-zinc-400 hover:text-zinc-600">
+              <button onClick={() => { setIsCategoryModalOpen(false); setCategoryError(null); }} className="text-zinc-400 hover:text-zinc-600 dark:text-zinc-400">
                 <CloseIcon size={24} />
               </button>
             </div>
 
             {categoryError && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 animate-in fade-in slide-in-from-top-2">
+              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 dark:text-red-400 animate-in fade-in slide-in-from-top-2">
                 <AlertCircle size={20} className="flex-shrink-0" />
                 <p className="text-xs font-bold">{categoryError}</p>
               </div>
@@ -958,10 +958,10 @@ export default function Products() {
 
             <div className="flex-1 overflow-y-auto space-y-4 mb-6 pr-2">
               {categories.map(cat => (
-                <div key={cat.id} className="flex items-center justify-between p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                <div key={cat.id} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-950 rounded-2xl border border-zinc-100 dark:border-zinc-800/50">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{cat.emoji}</span>
-                    <span className="font-bold text-zinc-700">{cat.name}</span>
+                    <span className="font-bold text-zinc-700 dark:text-zinc-300">{cat.name}</span>
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -970,14 +970,14 @@ export default function Products() {
                         setSelectedCategory(cat);
                         setCategoryFormData({ name: cat.name, emoji: cat.emoji });
                       }}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:bg-blue-900/20 rounded-lg transition-colors"
                     >
                       <Pencil size={18} />
                     </button>
                     {!DEFAULT_CATEGORIES.some(d => d.name === cat.name) && (
                       <button
                         onClick={() => deleteCategory(cat.id)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 text-red-500 dark:text-red-400 hover:bg-red-50 dark:bg-red-900/20 rounded-lg transition-colors"
                       >
                         <Trash2 size={18} />
                       </button>
@@ -987,7 +987,7 @@ export default function Products() {
               ))}
             </div>
 
-            <form onSubmit={handleCategorySubmit} className="bg-zinc-50 p-6 rounded-3xl border border-zinc-200">
+            <form onSubmit={handleCategorySubmit} className="bg-zinc-50 dark:bg-zinc-950 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800">
               <h4 className="font-bold text-sm uppercase text-zinc-400 mb-4">
                 {isCategoryEditMode ? 'Editar Categoria' : 'Nova Categoria'}
               </h4>
@@ -996,7 +996,7 @@ export default function Products() {
                   <label className="block text-[10px] font-bold text-zinc-400 uppercase mb-1 ml-1">Ícone</label>
                   <input
                     type="text"
-                    className="w-full p-3 bg-white border border-zinc-200 rounded-xl outline-none focus:border-emerald-500 text-center text-xl"
+                    className="w-full p-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-emerald-500 text-center text-xl"
                     placeholder="📦"
                     value={categoryFormData.emoji}
                     onChange={e => setCategoryFormData({ ...categoryFormData, emoji: e.target.value })}
@@ -1007,7 +1007,7 @@ export default function Products() {
                   <input
                     type="text"
                     required
-                    className="w-full p-3 bg-white border border-zinc-200 rounded-xl outline-none focus:border-emerald-500"
+                    className="w-full p-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-emerald-500"
                     placeholder="Ex: Cerveja"
                     value={categoryFormData.name}
                     onChange={e => setCategoryFormData({ ...categoryFormData, name: e.target.value })}
@@ -1022,7 +1022,7 @@ export default function Products() {
                       setIsCategoryEditMode(false);
                       setCategoryFormData({ name: '', emoji: '📦' });
                     }}
-                    className="flex-1 py-2 bg-zinc-200 text-zinc-600 font-bold rounded-xl"
+                    className="flex-1 py-2 bg-zinc-200 text-zinc-600 dark:text-zinc-400 font-bold rounded-xl"
                   >
                     Cancelar
                   </button>
@@ -1042,13 +1042,13 @@ export default function Products() {
       {/* Conflict / Choice Modal */}
       {isConflictModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[70] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl border border-red-100 animate-in zoom-in-95 duration-200">
-            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-3xl flex items-center justify-center mb-6 mx-auto">
+          <div className="bg-white dark:bg-zinc-900 rounded-[2rem] w-full max-w-md p-8 shadow-2xl dark:shadow-none border border-red-100 animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-red-100 text-red-600 dark:text-red-400 rounded-3xl flex items-center justify-center mb-6 mx-auto">
               <ShieldAlert size={32} />
             </div>
 
-            <h3 className="text-2xl font-black text-center text-zinc-900 mb-2">Conflito de Pedidos</h3>
-            <p className="text-zinc-500 text-center mb-8">
+            <h3 className="text-2xl font-black text-center text-zinc-900 dark:text-zinc-50 mb-2">Conflito de Pedidos</h3>
+            <p className="text-zinc-500 dark:text-zinc-400 text-center mb-8">
               O produto <strong>{selectedProduct?.name}</strong> possui pedidos vinculados. O que deseja fazer?
             </p>
 
@@ -1061,7 +1061,7 @@ export default function Products() {
                   <div className="text-sm">Arquivar Produto</div>
                   <div className="text-[10px] text-zinc-400 font-normal">Apenas oculta da lista (Recomendado)</div>
                 </div>
-                <div className="bg-white/10 p-2 rounded-lg group-hover:scale-110 transition-transform">
+                <div className="bg-white dark:bg-zinc-900/10 p-2 rounded-lg group-hover:scale-110 transition-transform">
                   <History size={18} />
                 </div>
               </button>
@@ -1069,7 +1069,7 @@ export default function Products() {
               <button
                 disabled={isDeleting}
                 onClick={forceDeleteProduct}
-                className="w-full py-4 bg-red-50 text-red-600 font-bold rounded-2xl hover:bg-red-100 transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
+                className="w-full py-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold rounded-2xl hover:bg-red-100 transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
               >
                 <div className="text-left flex-1 px-4">
                   <div className="text-sm">{isDeleting ? 'Excluindo...' : 'Excluir TUDO'}</div>
@@ -1082,7 +1082,7 @@ export default function Products() {
 
               <button
                 onClick={() => setIsConflictModalOpen(false)}
-                className="w-full py-4 text-zinc-400 font-bold hover:text-zinc-600 transition-all"
+                className="w-full py-4 text-zinc-400 font-bold hover:text-zinc-600 dark:text-zinc-400 transition-all"
               >
                 Cancelar
               </button>
