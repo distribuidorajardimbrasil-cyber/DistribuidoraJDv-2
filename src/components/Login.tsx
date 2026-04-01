@@ -107,7 +107,7 @@ export default function Login({ onLogin }: LoginProps) {
                 {/* Decorative bubbles - pure CSS */}
                 <div className="absolute top-1/4 right-1/4 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl animate-pulse"></div>
                 <div className="absolute bottom-1/4 left-1/4 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-                <div className="absolute top-1/2 right-10 w-16 h-16 bg-white dark:bg-zinc-900/5 rounded-full blur-md"></div>
+                <div className="absolute top-1/2 right-10 w-16 h-16 bg-white/5 rounded-full blur-md"></div>
                 <div className="absolute top-20 right-40 w-8 h-8 rounded-full border border-white/10 backdrop-blur-sm"></div>
                 <div className="absolute bottom-40 left-20 w-12 h-12 rounded-full border border-white/10 backdrop-blur-sm"></div>
 
@@ -119,19 +119,19 @@ export default function Login({ onLogin }: LoginProps) {
             </div>
 
             {/* Login Card */}
-            <div className="w-full max-w-md z-10 flex flex-col shadow-2xl dark:shadow-none rounded-3xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="w-full max-w-md z-10 flex flex-col shadow-2xl rounded-3xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
 
                 {/* White Top Header */}
-                <div className="bg-white dark:bg-zinc-900 px-8 py-6 flex items-center gap-4">
+                <div className="bg-white px-8 py-6 flex items-center gap-4">
                     <img src="/logo.png" alt="Distribuidora JD" className="h-14 w-auto object-contain" />
                     <div className="flex flex-col">
                         <h1 className="text-2xl font-extrabold text-[#0a192f] tracking-tight leading-none">Distribuidora JD</h1>
-                        <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">Água e Gás</p>
+                        <p className="text-sm text-zinc-500 font-medium">Água e Gás</p>
                     </div>
                 </div>
 
                 {/* Glassmorphism Body */}
-                <div className="p-8 backdrop-blur-xl bg-white dark:bg-zinc-900/10 border-t border-white/20">
+                <div className="p-8 backdrop-blur-xl bg-white/10 border-t border-white/20">
                     <div className="mb-6">
                         <h2 className="text-2xl font-bold text-white mb-1">
                             {isLogin ? 'Olá, Bem-vindo' : 'Criar Conta'}
@@ -161,7 +161,7 @@ export default function Login({ onLogin }: LoginProps) {
                                         required
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
-                                        className="w-full pl-11 pr-4 py-3 bg-white dark:bg-zinc-900/5 border border-white/20 rounded-2xl outline-none focus:border-emerald-400 focus:bg-white dark:bg-zinc-900/10 text-white placeholder-emerald-100/30 transition-all font-medium"
+                                        className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/20 rounded-2xl outline-none focus:border-emerald-400 focus:bg-white/10 text-white placeholder-emerald-100/30 transition-all font-medium"
                                         placeholder="João Silva"
                                     />
                                 </div>
@@ -179,7 +179,7 @@ export default function Login({ onLogin }: LoginProps) {
                                     required
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full pl-11 pr-4 py-3 bg-white dark:bg-zinc-900/5 border border-white/20 rounded-2xl outline-none focus:border-emerald-400 focus:bg-white dark:bg-zinc-900/10 text-white placeholder-emerald-100/30 transition-all font-medium"
+                                    className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/20 rounded-2xl outline-none focus:border-emerald-400 focus:bg-white/10 text-white placeholder-emerald-100/30 transition-all font-medium"
                                     placeholder="exemplo@email.com"
                                 />
                             </div>
@@ -204,7 +204,7 @@ export default function Login({ onLogin }: LoginProps) {
                                     minLength={6}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full pl-11 pr-4 py-3 bg-white dark:bg-zinc-900/5 border border-white/20 rounded-2xl outline-none focus:border-emerald-400 focus:bg-white dark:bg-zinc-900/10 text-white placeholder-emerald-100/30 transition-all font-medium"
+                                    className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/20 rounded-2xl outline-none focus:border-emerald-400 focus:bg-white/10 text-white placeholder-emerald-100/30 transition-all font-medium"
                                     placeholder="••••••••••••"
                                 />
                             </div>
@@ -214,7 +214,7 @@ export default function Login({ onLogin }: LoginProps) {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full bg-[#00c875] hover:bg-emerald-500 text-white font-bold py-3.5 px-4 rounded-full transition-all disabled:opacity-70 flex items-center justify-center gap-2 shadow-lg dark:shadow-none shadow-emerald-900/50"
+                                className="w-full bg-[#00c875] hover:bg-emerald-500 text-white font-bold py-3.5 px-4 rounded-full transition-all disabled:opacity-70 flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/50"
                             >
                                 {loading ? (
                                     <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
