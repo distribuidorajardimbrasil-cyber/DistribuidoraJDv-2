@@ -464,8 +464,15 @@ export default function Customers() {
           <div className="bg-white rounded-3xl w-full max-w-2xl p-8 shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h3 className="text-xl font-bold">Histórico de Pedidos</h3>
-                <p className="text-zinc-500 text-sm">{selectedCustomer?.name}</p>
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xl font-bold">Histórico de Pedidos</h3>
+                  <span className="bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full text-xs">
+                    {customerOrders.length} encontrados
+                  </span>
+                </div>
+                <p className="text-zinc-500 text-sm mt-1 text-left">
+                  {selectedCustomer?.name} • <span className="text-[10px] uppercase font-bold text-zinc-400">Todo o Histórico (Sem Validade de 6 Meses)</span>
+                </p>
               </div>
               <button onClick={() => setIsHistoryModalOpen(false)} className="p-2 hover:bg-zinc-100 rounded-full transition-colors">
                 <X size={20} />

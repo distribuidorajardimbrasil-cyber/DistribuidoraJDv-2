@@ -245,14 +245,19 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
               <button onClick={() => setSelectedCustomer(null)} className="text-emerald-700 hover:text-red-600 font-bold text-xs">Remover</button>
             </div>
           ) : (
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {filteredCustomers.slice(0, 5).map(customer => (
+            <div className="flex flex-wrap gap-2 overflow-auto max-h-[220px] pb-2">
+              {filteredCustomers.slice(0, 8).map(customer => (
                 <button
                   key={customer.id}
                   onClick={() => setSelectedCustomer(customer)}
-                  className="flex-shrink-0 p-3 bg-zinc-50 border border-zinc-100 rounded-xl hover:bg-zinc-100 transition-all text-sm font-medium"
+                  className="flex-none w-[180px] sm:w-[220px] text-left p-3 bg-zinc-50 border border-zinc-100 rounded-xl hover:border-emerald-200 hover:bg-emerald-50 transition-all text-sm font-medium"
                 >
-                  {customer.name}
+                  <p className="font-bold text-zinc-900 truncate">{customer.name}</p>
+                  {(customer.phone || customer.address) && (
+                    <p className="text-[10px] text-zinc-500 font-normal mt-1 leading-tight line-clamp-2">
+                      {customer.phone} {customer.phone && customer.address ? '• ' : ''}{customer.address}
+                    </p>
+                  )}
                 </button>
               ))}
             </div>
