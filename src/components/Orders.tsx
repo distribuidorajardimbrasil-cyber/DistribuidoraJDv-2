@@ -589,15 +589,7 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
                           </a>
                         ) : null}
 
-                        {order.customer_id && profile?.role === 'entregador' && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleUpdateManualLink(order.customer_id!); }}
-                            className="text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700 transition-colors ml-auto"
-                            title="Inserir link manual do Maps"
-                          >
-                            ✏️ Add Link Maps
-                          </button>
-                        )}
+
                       </div>
                     </div>
                   )}
