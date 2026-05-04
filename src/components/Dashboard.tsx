@@ -52,25 +52,49 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   };
 
   const fetchStats = async () => {
-    // 1. Calculate the 'current' date prefix in America/Sao_Paulo timezone
     const now = new Date();
-    const saoPauloDateStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }); // Returns YYYY-MM-DD
-    const today = saoPauloDateStr;
-    const monthPrefix = today.substring(0, 7);
+    // Fallback manual formatting to ensure YYYY-MM-DD
+    const spTimeFormatter = new Intl.DateTimeFormat('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric', month: '2-digit', day: '2-digit'
+    });
+    const parts = spTimeFormatter.formatToParts(now);
+    const day = parts.find(p => p.type === 'day')?.value;
+    const monthStr = parts.find(p => p.type === 'month')?.value;
+    const yearStr = parts.find(p => p.type === 'year')?.value;
+    
+    const today = `${yearStr}-${monthStr}-${day}`;
+    const monthPrefix = `${yearStr}-${monthStr}`;
 
-    // 1. Transactions for Daily/Monthly totals and expenses
-    const { data: trans } = await supabase.from('transactions').select('*');
+    const year = parseInt(yearStr || '0');
+    const month = parseInt(monthStr || '1') - 1; // 0-indexed
+    
+    const localStartOfMonth = new Date(year, month, 1, 0, 0, 0);
+    const localNextMonth = new Date(year, month + 1, 1, 0, 0, 0);
+
+    const startDate = localStartOfMonth.toISOString();
+    const endDate = localNextMonth.toISOString();
+
+    // 1. Transactions for Daily/Monthly totals and expenses (LIMIT to this month)
+    const { data: trans } = await supabase
+      .from('transactions')
+      .select('*')
+      .gte('created_at', startDate)
+      .lt('created_at', endDate);
+
     if (trans) {
       let dailyTotal = 0;
       let monthlyTotal = 0;
       let monthlyExpenses = 0;
 
       for (const t of trans) {
-        // Evaluate db date using local timezone as well for proper comparison if needed
-        // Since created_at is UTC in DB, let's normalize to Sao Paulo Date string
         const tDate = new Date(t.created_at);
-        const tDateString = tDate.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
-        const dbMonth = tDateString.substring(0, 7);
+        const tParts = spTimeFormatter.formatToParts(tDate);
+        const tDay = tParts.find(p => p.type === 'day')?.value;
+        const tMonth = tParts.find(p => p.type === 'month')?.value;
+        const tYear = tParts.find(p => p.type === 'year')?.value;
+        const tDateString = `${tYear}-${tMonth}-${tDay}`;
+        const dbMonth = `${tYear}-${tMonth}`;
 
         if (t.type === 'income') {
           if (dbMonth === monthPrefix) monthlyTotal += t.amount;
@@ -79,17 +103,6 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           if (dbMonth === monthPrefix) monthlyExpenses += t.amount;
         }
       }
-
-      // Get local start of month
-      const parts = monthPrefix.split('-');
-      const year = parseInt(parts[0]);
-      const month = parseInt(parts[1]) - 1; // 0-indexed
-      const localStartOfMonth = new Date(year, month, 1, 0, 0, 0); // 00:00 local time
-      
-      const localNextMonth = new Date(year, month + 1, 1, 0, 0, 0); // next month 00:00 local time
-
-      const startDate = localStartOfMonth.toISOString();
-      const endDate = localNextMonth.toISOString();
 
       // 2. Profit calculation (Paid orders this month)
       const { data: orders } = await supabase

@@ -13,7 +13,8 @@ import {
   Truck,
   ChevronRight,
   Sun,
-  Moon
+  Moon,
+  MapPin
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Profile } from './types';
@@ -29,10 +30,11 @@ import NewOrder from './components/NewOrder';
 import Login from './components/Login';
 import Team from './components/Team';
 import Deliverymen from './components/Deliverymen';
+import LiveMap from './components/LiveMap';
 
 export default function App() {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'customers' | 'orders' | 'finance-overview' | 'finance-payments' | 'finance-rates' | 'new-order' | 'team' | 'deliverymen'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'customers' | 'orders' | 'finance-overview' | 'finance-payments' | 'finance-rates' | 'new-order' | 'team' | 'deliverymen' | 'live-map'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isFinanceOpen, setIsFinanceOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -78,6 +80,36 @@ export default function App() {
     }
   }, [profile]);
 
+  // Track location if entregador
+  useEffect(() => {
+    let watchId: number;
+
+    if (profile?.role === 'entregador' && 'geolocation' in navigator) {
+      watchId = navigator.geolocation.watchPosition(
+        async (position) => {
+          try {
+            await supabase.from('deliveryman_locations').upsert({
+              deliveryman_id: profile.id,
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              updated_at: new Date().toISOString()
+            });
+          } catch (error) {
+            console.error('Erro ao atualizar localização:', error);
+          }
+        },
+        (error) => {
+          console.warn('Erro na geolocalização:', error.message);
+        },
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+      );
+    }
+
+    return () => {
+      if (watchId !== undefined) navigator.geolocation.clearWatch(watchId);
+    };
+  }, [profile]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setProfile(null);
@@ -119,6 +151,7 @@ export default function App() {
     { id: 'finance', label: 'Financeiro', icon: DollarSign, isExpandable: true },
     { id: 'team', label: 'Equipe', icon: ShieldAlert },
     { id: 'deliverymen', label: 'Entregadores', icon: Truck },
+    { id: 'live-map', label: 'Mapa ao Vivo', icon: MapPin },
   ];
 
   if (!isAdmin) {
@@ -139,6 +172,7 @@ export default function App() {
       case 'new-order': return isAdmin ? <NewOrder onComplete={() => setActiveTab('orders')} /> : null;
       case 'team': return isAdmin ? <Team /> : null;
       case 'deliverymen': return isAdmin ? <Deliverymen /> : null;
+      case 'live-map': return isAdmin ? <LiveMap /> : null;
       default: return isAdmin ? <Dashboard onNavigate={setActiveTab} /> : <Orders profile={profile} />;
     }
   };

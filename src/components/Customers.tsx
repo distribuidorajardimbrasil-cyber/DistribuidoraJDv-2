@@ -31,7 +31,8 @@ export default function Customers() {
     address: '',
     phone: '',
     notes: '',
-    loyalty_count: 0
+    loyalty_count: 0,
+    google_maps_link: ''
   });
 
   useEffect(() => {
@@ -95,7 +96,8 @@ export default function Customers() {
           address: formData.address,
           phone: formData.phone,
           notes: formData.notes,
-          loyalty_count: 0
+          loyalty_count: 0,
+          google_maps_link: formData.google_maps_link
         }]);
 
       if (!error) {
@@ -257,7 +259,7 @@ export default function Customers() {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', address: '', phone: '', notes: '', loyalty_count: 0 });
+    setFormData({ name: '', address: '', phone: '', notes: '', loyalty_count: 0, google_maps_link: '' });
     setIsEditMode(false);
     setSelectedCustomer(null);
   };
@@ -269,7 +271,8 @@ export default function Customers() {
       address: customer.address || '',
       phone: customer.phone || '',
       notes: customer.notes || '',
-      loyalty_count: customer.loyalty_count || 0
+      loyalty_count: customer.loyalty_count || 0,
+      google_maps_link: customer.google_maps_link || ''
     });
     setIsEditMode(true);
     setIsModalOpen(true);
@@ -426,6 +429,16 @@ export default function Customers() {
                   className="w-full p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-emerald-500"
                   value={formData.address}
                   onChange={e => setFormData({ ...formData, address: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1">Link do Google Maps</label>
+                <input
+                  type="url"
+                  placeholder="https://maps.app.goo.gl/..."
+                  className="w-full p-3 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none focus:border-emerald-500 text-blue-500"
+                  value={formData.google_maps_link}
+                  onChange={e => setFormData({ ...formData, google_maps_link: e.target.value })}
                 />
               </div>
               <div>

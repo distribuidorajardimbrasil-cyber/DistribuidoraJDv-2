@@ -15,6 +15,7 @@ export interface Customer {
   phone: string;
   notes: string;
   loyalty_count: number;
+  google_maps_link?: string;
 }
 
 export interface OrderItem {
@@ -32,12 +33,14 @@ export interface Order {
   customer_address?: string;
   customer_phone?: string;
   customer_notes?: string;
+  customer_google_maps_link?: string;
   items?: OrderItem[];
   total_amount: number;
   net_amount?: number;
   payment_method: string;
   payment_status: string;
   delivery_status: string;
+  deliveryman_id?: string;
   notes?: string;
   created_at: string;
 }

@@ -32,12 +32,24 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
   const [productSearch, setProductSearch] = useState('');
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editManualTotal, setEditManualTotal] = useState<number>(0);
+  const [deliverymen, setDeliverymen] = useState<Profile[]>([]);
 
   useEffect(() => {
     fetchOrders();
     fetchCategories();
     fetchProducts();
+    fetchDeliverymen();
   }, []);
+
+  const fetchDeliverymen = async () => {
+    const { data } = await supabase.from('profiles').select('id, name, role').eq('role', 'entregador');
+    if (data) setDeliverymen(data as Profile[]);
+  };
+
+  const updateDeliveryman = async (id: number, deliverymanId: string | null) => {
+    const { error } = await supabase.from('orders').update({ deliveryman_id: deliverymanId }).eq('id', id);
+    if (!error) fetchOrders();
+  };
 
   const fetchProducts = async () => {
     const { data } = await supabase.from('products').select('*');
@@ -56,7 +68,7 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
   const fetchOrders = async () => {
     const { data } = await supabase
       .from('orders')
-      .select('*, customer:customers(name, address, phone, notes), items:order_items(id, product_id, quantity, price_at_time, product:products(name, category, price_sell, stock_quantity))')
+      .select('*, customer:customers(name, address, phone, notes, google_maps_link), items:order_items(id, product_id, quantity, price_at_time, product:products(name, category, price_sell, stock_quantity))')
       .order('created_at', { ascending: false });
 
     if (data) {
@@ -66,6 +78,7 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
         customer_address: o.customer?.address || null,
         customer_phone: o.customer?.phone || null,
         customer_notes: o.customer?.notes || null,
+        customer_google_maps_link: o.customer?.google_maps_link || null,
         items: o.items?.map((item: any) => ({
           id: item.id,
           product_id: item.product_id,
@@ -197,6 +210,29 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
       updates.delivery_status = value;
       if (profile?.role === 'entregador' && (value === 'Saiu para entrega' || value === 'Entregue')) {
         updates.deliveryman_id = profile.id;
+      }
+      
+      if (value === 'Entregue' && order.customer_id) {
+        if ('geolocation' in navigator) {
+          navigator.geolocation.getCurrentPosition(
+            async (position) => {
+              try {
+                await supabase.from('customer_locations').insert([{
+                  customer_id: order.customer_id,
+                  order_id: order.id,
+                  latitude: position.coords.latitude,
+                  longitude: position.coords.longitude
+                }]);
+              } catch (e) {
+                console.error("Erro ao salvar localização:", e);
+              }
+            },
+            (error) => {
+              console.warn("Não foi possível capturar a localização:", error.message);
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+          );
+        }
       }
     }
 
@@ -349,6 +385,8 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
 
   const filteredOrders = orders.filter(o => {
     if (profile?.role === 'entregador') {
+      if (o.deliveryman_id !== profile.id) return false;
+
       // Drivers only see orders when filter is 'Todos' or they are tracking delivered/active
       if (filterStatus === 'Ativos' && o.delivery_status === 'Entregue') {
         return false;
@@ -447,21 +485,35 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
                   <p className="text-zinc-600 dark:text-zinc-400 font-medium">{order.customer_name || 'Consumidor Final'}</p>
 
                   {order.customer_address && (
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 flex flex-col md:flex-row md:items-center gap-1">
+                    <div className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 flex flex-col md:flex-row md:items-center gap-2">
                       <span>📍 {order.customer_address}</span>
-                      {order.customer_phone && (
-                        <a
-                          href={`https://wa.me/55${order.customer_phone.replace(/\D/g, '')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:text-emerald-400 font-medium text-xs ml-0 md:ml-2 inline-flex items-center gap-1 shrink-0"
-                          title="Chamar no WhatsApp"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          📱 WhatsApp
-                        </a>
-                      )}
-                    </p>
+                      <div className="flex items-center gap-2 md:ml-1 flex-wrap">
+                        {order.customer_phone && (
+                          <a
+                            href={`https://wa.me/55${order.customer_phone.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 font-medium text-xs flex items-center gap-1"
+                            title="Chamar no WhatsApp"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            📱 WhatsApp
+                          </a>
+                        )}
+                        {order.customer_google_maps_link && (
+                          <a
+                            href={order.customer_google_maps_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 font-bold text-xs flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-lg border border-blue-200 dark:border-blue-800"
+                            title="Abrir no Google Maps"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            🗺️ Abrir Rota
+                          </a>
+                        )}
+                      </div>
+                    </div>
                   )}
 
                   {/* Customer Notes */}
@@ -520,19 +572,36 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
                 )}
 
                 {(!isFinanceMode) && (
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] uppercase font-bold text-zinc-400 ml-1">Entrega</label>
-                    <select
-                      value={order.delivery_status}
-                      onChange={(e) => updateStatus(order.id, 'delivery', e.target.value)}
-                      className={`text-xs font-bold px-3 py-2 rounded-xl outline-none border-none cursor-pointer ${order.delivery_status === 'Entregue' ? 'bg-blue-100 text-blue-700' :
-                        order.delivery_status === 'Saiu para entrega' ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400' : 'bg-zinc-100 dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300'
-                        }`}
-                    >
-                      <option value="Em preparo">Em preparo</option>
-                      <option value="Saiu para entrega">Saiu para entrega</option>
-                      <option value="Entregue">Entregue</option>
-                    </select>
+                  <div className="flex gap-2 items-center">
+                    {profile?.role !== 'entregador' && (
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] uppercase font-bold text-zinc-400 ml-1">Entregador</label>
+                        <select
+                          value={order.deliveryman_id || ''}
+                          onChange={(e) => updateDeliveryman(order.id, e.target.value || null)}
+                          className={`text-xs font-bold px-3 py-2 rounded-xl outline-none border-none cursor-pointer ${order.deliveryman_id ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400' : 'bg-zinc-100 dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300'}`}
+                        >
+                          <option value="">Não atribuído</option>
+                          {deliverymen.map(d => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] uppercase font-bold text-zinc-400 ml-1">Entrega</label>
+                      <select
+                        value={order.delivery_status}
+                        onChange={(e) => updateStatus(order.id, 'delivery', e.target.value)}
+                        className={`text-xs font-bold px-3 py-2 rounded-xl outline-none border-none cursor-pointer ${order.delivery_status === 'Entregue' ? 'bg-blue-100 text-blue-700' :
+                          order.delivery_status === 'Saiu para entrega' ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400' : 'bg-zinc-100 dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300'
+                          }`}
+                      >
+                        <option value="Em preparo">Em preparo</option>
+                        <option value="Saiu para entrega">Saiu para entrega</option>
+                        <option value="Entregue">Entregue</option>
+                      </select>
+                    </div>
                   </div>
                 )}
 
