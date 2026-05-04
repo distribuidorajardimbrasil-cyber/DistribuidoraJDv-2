@@ -39,29 +39,7 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
     if ('Notification' in window && Notification.permission === 'default' && profile?.role === 'entregador') {
       setShowNotifPrompt(true);
     }
-  }, [profile]);
 
-  const requestNotificationPermission = () => {
-    if ('Notification' in window) {
-      Notification.requestPermission().then(permission => {
-        if (permission === 'granted') {
-          new Notification("Notificações Ativadas!", { body: "Você será avisado quando houver novos pedidos." });
-        }
-        setShowNotifPrompt(false);
-      });
-    }
-    // Unlock audio context
-    try {
-      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-      if (AudioContext) {
-        const ctx = new AudioContext();
-        const osc = ctx.createOscillator();
-        osc.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.01);
-      }
-    } catch(e) {}
-  };
     fetchOrders();
     fetchCategories();
     fetchProducts();
@@ -117,6 +95,28 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
       clearInterval(fallbackInterval);
     };
   }, [profile]);
+
+  const requestNotificationPermission = () => {
+    if ('Notification' in window) {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          new Notification("Notificações Ativadas!", { body: "Você será avisado quando houver novos pedidos." });
+        }
+        setShowNotifPrompt(false);
+      });
+    }
+    // Unlock audio context
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContext) {
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        osc.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.01);
+      }
+    } catch(e) {}
+  };
 
   const fetchDeliverymen = async () => {
     const { data } = await supabase.from('profiles').select('id, name, role').eq('role', 'entregador');
