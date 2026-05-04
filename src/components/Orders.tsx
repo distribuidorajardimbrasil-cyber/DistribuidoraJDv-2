@@ -227,20 +227,24 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
           navigator.geolocation.getCurrentPosition(
             async (position) => {
               try {
-                await supabase.from('customer_locations').insert([{
+                const { error: insertError } = await supabase.from('customer_locations').insert([{
                   customer_id: order.customer_id,
                   order_id: order.id,
                   latitude: position.coords.latitude,
                   longitude: position.coords.longitude
                 }]);
-              } catch (e) {
+                if (insertError) {
+                  alert("Erro no DB ao salvar GPS: " + insertError.message);
+                }
+              } catch (e: any) {
                 console.error("Erro ao salvar localização:", e);
               }
             },
             (error) => {
+              alert("Não foi possível capturar o GPS do cliente: " + error.message);
               console.warn("Não foi possível capturar a localização:", error.message);
             },
-            { enableHighAccuracy: true, timeout: 10000 }
+            { enableHighAccuracy: true, timeout: 15000 }
           );
         }
       }
@@ -492,7 +496,7 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
                     <h3 className="font-bold text-lg leading-tight">Pedido #{order.id}</h3>
                     <span className="text-xs text-zinc-400 font-medium whitespace-nowrap">• {new Date(order.created_at).toLocaleString('pt-BR')}</span>
                   </div>
-                  <p className="text-zinc-600 dark:text-zinc-400 font-medium truncate">{order.customer_name || 'Consumidor Final'}</p>
+                  <p className="text-zinc-600 dark:text-zinc-400 font-medium break-words">{order.customer_name || 'Consumidor Final'}</p>
 
                   {(order.customer_address || order.customer_phone || order.customer_google_maps_link || order.customer_location) && (
                     <div className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 flex flex-col gap-2">
@@ -558,11 +562,11 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
                       <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Itens do Pedido</p>
                       <ul className="space-y-1">
                         {order.items.map(item => (
-                          <li key={item.id} className="text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2 min-w-0">
-                            <span className="font-bold text-zinc-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 text-xs shrink-0">
+                          <li key={item.id} className="text-sm text-zinc-700 dark:text-zinc-300 flex items-start gap-2 min-w-0">
+                            <span className="font-bold text-zinc-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 text-xs shrink-0 mt-0.5">
                               {item.quantity}x
                             </span>
-                            <span className="truncate flex-1">
+                            <span className="flex-1 break-words leading-tight pt-0.5">
                               {item.product_category ? `${item.product_category} ${item.product_name}` : item.product_name}
                             </span>
                           </li>
