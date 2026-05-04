@@ -33,8 +33,35 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editManualTotal, setEditManualTotal] = useState<number>(0);
   const [deliverymen, setDeliverymen] = useState<Profile[]>([]);
+  const [showNotifPrompt, setShowNotifPrompt] = useState(false);
 
   useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default' && profile?.role === 'entregador') {
+      setShowNotifPrompt(true);
+    }
+  }, [profile]);
+
+  const requestNotificationPermission = () => {
+    if ('Notification' in window) {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          new Notification("Notificações Ativadas!", { body: "Você será avisado quando houver novos pedidos." });
+        }
+        setShowNotifPrompt(false);
+      });
+    }
+    // Unlock audio context
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContext) {
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        osc.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.01);
+      }
+    } catch(e) {}
+  };
     fetchOrders();
     fetchCategories();
     fetchProducts();
@@ -545,6 +572,23 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
       </div>
 
       <div className="space-y-4">
+        {showNotifPrompt && (
+          <div className="bg-indigo-600 dark:bg-indigo-700 text-white p-4 rounded-xl shadow-md mb-4 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🔔</span>
+              <div>
+                <h3 className="font-bold text-sm">Ative as Notificações</h3>
+                <p className="text-xs text-indigo-100">Para o celular apitar e vibrar quando chegar pedido.</p>
+              </div>
+            </div>
+            <button 
+              onClick={requestNotificationPermission}
+              className="bg-white text-indigo-600 px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap hover:bg-indigo-50 transition-colors"
+            >
+              Ativar Agora
+            </button>
+          </div>
+        )}
         {filteredOrders.map(order => (
           <div key={order.id} className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none hover:shadow-md dark:shadow-none transition-all">
             <div className="flex flex-col md:flex-row justify-between gap-6">
