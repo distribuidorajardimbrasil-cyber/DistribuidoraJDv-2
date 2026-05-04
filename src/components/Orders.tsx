@@ -527,6 +527,20 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
           <h2 className="text-2xl font-bold">{isFinanceMode ? 'Gestão de Pagamentos' : 'Pedidos'}</h2>
           <p className="text-zinc-500 dark:text-zinc-400">{isFinanceMode ? 'Gerencie pendências e pagamentos de pedidos.' : 'Acompanhe e gerencie as entregas.'}</p>
         </div>
+        {profile?.role === 'entregador' && (
+          <button 
+            onClick={() => {
+              requestNotificationPermission();
+              if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
+              if ('Notification' in window && Notification.permission === 'denied') {
+                alert("As notificações estão BLOQUEADAS no seu navegador. Clique no cadeado na barra de endereços (ou nas configurações do site) e permita as Notificações e Som.");
+              }
+            }}
+            className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors"
+          >
+            🔔 Ligar / Testar Alertas
+          </button>
+        )}
       </div>
 
       <div className="flex flex-col md:flex-row gap-4">
