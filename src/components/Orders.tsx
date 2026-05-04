@@ -68,28 +68,38 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
   const fetchOrders = async () => {
     const { data } = await supabase
       .from('orders')
-      .select('*, customer:customers(name, address, phone, notes, google_maps_link), items:order_items(id, product_id, quantity, price_at_time, product:products(name, category, price_sell, stock_quantity))')
+      .select('*, customer:customers(name, address, phone, notes, google_maps_link, customer_locations(latitude, longitude, created_at)), items:order_items(id, product_id, quantity, price_at_time, product:products(name, category, price_sell, stock_quantity))')
       .order('created_at', { ascending: false });
 
     if (data) {
-      const formattedData = data.map((o: any) => ({
-        ...o,
-        customer_name: o.customer?.name || null,
-        customer_address: o.customer?.address || null,
-        customer_phone: o.customer?.phone || null,
-        customer_notes: o.customer?.notes || null,
-        customer_google_maps_link: o.customer?.google_maps_link || null,
-        items: o.items?.map((item: any) => ({
-          id: item.id,
-          product_id: item.product_id,
-          quantity: item.quantity,
-          price_at_time: item.price_at_time,
-          product_name: item.product?.name || 'Produto Desconhecido',
-          product_category: item.product?.category || '',
-          product_stock: item.product?.stock_quantity || 0,
-          product_price: item.product?.price_sell || 0
-        })) || []
-      }));
+      const formattedData = data.map((o: any) => {
+        // Find latest location if any
+        let latestLocation = null;
+        if (o.customer?.customer_locations?.length > 0) {
+          const locs = o.customer.customer_locations.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          latestLocation = locs[0];
+        }
+
+        return {
+          ...o,
+          customer_name: o.customer?.name || null,
+          customer_address: o.customer?.address || null,
+          customer_phone: o.customer?.phone || null,
+          customer_notes: o.customer?.notes || null,
+          customer_google_maps_link: o.customer?.google_maps_link || null,
+          customer_location: latestLocation,
+          items: o.items?.map((item: any) => ({
+            id: item.id,
+            product_id: item.product_id,
+            quantity: item.quantity,
+            price_at_time: item.price_at_time,
+            product_name: item.product?.name || 'Produto Desconhecido',
+            product_category: item.product?.category || '',
+            product_stock: item.product?.stock_quantity || 0,
+            product_price: item.product?.price_sell || 0
+          })) || []
+        };
+      });
       setOrders(formattedData);
     }
   };
@@ -477,41 +487,53 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
                 <div className="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-800/50 flex items-center justify-center text-zinc-500 dark:text-zinc-400 flex-shrink-0">
                   <ShoppingCart size={24} />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-lg">Pedido #{order.id}</h3>
-                    <span className="text-xs text-zinc-400 font-medium">• {new Date(order.created_at).toLocaleString('pt-BR')}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
+                    <h3 className="font-bold text-lg leading-tight">Pedido #{order.id}</h3>
+                    <span className="text-xs text-zinc-400 font-medium whitespace-nowrap">• {new Date(order.created_at).toLocaleString('pt-BR')}</span>
                   </div>
-                  <p className="text-zinc-600 dark:text-zinc-400 font-medium">{order.customer_name || 'Consumidor Final'}</p>
+                  <p className="text-zinc-600 dark:text-zinc-400 font-medium truncate">{order.customer_name || 'Consumidor Final'}</p>
 
-                  {order.customer_address && (
-                    <div className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 flex flex-col md:flex-row md:items-center gap-2">
-                      <span>📍 {order.customer_address}</span>
-                      <div className="flex items-center gap-2 md:ml-1 flex-wrap">
+                  {(order.customer_address || order.customer_phone || order.customer_google_maps_link || order.customer_location) && (
+                    <div className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 flex flex-col gap-2">
+                      {order.customer_address && <span>📍 {order.customer_address}</span>}
+                      
+                      <div className="flex items-center gap-2 flex-wrap">
                         {order.customer_phone && (
                           <a
                             href={`https://wa.me/55${order.customer_phone.replace(/\D/g, '')}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 font-medium text-xs flex items-center gap-1"
+                            className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 font-medium text-xs flex items-center gap-1 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800"
                             title="Chamar no WhatsApp"
                             onClick={(e) => e.stopPropagation()}
                           >
                             📱 WhatsApp
                           </a>
                         )}
-                        {order.customer_google_maps_link && (
+                        {order.customer_google_maps_link ? (
                           <a
                             href={order.customer_google_maps_link}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 font-bold text-xs flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-lg border border-blue-200 dark:border-blue-800"
+                            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 font-bold text-xs flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg border border-blue-200 dark:border-blue-800"
                             title="Abrir no Google Maps"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            🗺️ Abrir Rota
+                            🗺️ Rota (Manual)
                           </a>
-                        )}
+                        ) : order.customer_location ? (
+                          <a
+                            href={`https://www.google.com/maps?q=${order.customer_location.latitude},${order.customer_location.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-bold text-xs flex items-center gap-1 bg-indigo-50 dark:bg-indigo-900/20 px-2 py-1 rounded-lg border border-indigo-200 dark:border-indigo-800"
+                            title="Abrir GPS Salvo"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            📍 Rota (GPS Salvo)
+                          </a>
+                        ) : null}
                       </div>
                     </div>
                   )}
@@ -532,15 +554,15 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
 
                   {/* Items List */}
                   {order.items && order.items.length > 0 && (
-                    <div className="mt-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl p-3 border border-zinc-100 dark:border-zinc-800/50">
+                    <div className="mt-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl p-3 border border-zinc-100 dark:border-zinc-800/50 overflow-hidden">
                       <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Itens do Pedido</p>
                       <ul className="space-y-1">
                         {order.items.map(item => (
-                          <li key={item.id} className="text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
-                            <span className="font-bold text-zinc-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 text-xs">
+                          <li key={item.id} className="text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2 min-w-0">
+                            <span className="font-bold text-zinc-900 dark:text-zinc-50 bg-white dark:bg-zinc-900 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 text-xs shrink-0">
                               {item.quantity}x
                             </span>
-                            <span className="truncate">
+                            <span className="truncate flex-1">
                               {item.product_category ? `${item.product_category} ${item.product_name}` : item.product_name}
                             </span>
                           </li>
