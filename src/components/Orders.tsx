@@ -39,7 +39,46 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
     fetchCategories();
     fetchProducts();
     fetchDeliverymen();
-  }, []);
+
+    const channel = supabase.channel('orders_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+        fetchOrders(); // auto-refresh
+        if (profile?.role === 'entregador') {
+          const isNewAssignment = 
+            (payload.eventType === 'INSERT' && payload.new.deliveryman_id === profile.id) ||
+            (payload.eventType === 'UPDATE' && payload.new.deliveryman_id === profile.id && payload.old?.deliveryman_id !== profile.id);
+            
+          if (isNewAssignment) {
+            if ('vibrate' in navigator) navigator.vibrate([200, 100, 200, 100, 400]);
+            try {
+              const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+              if (AudioContext) {
+                const ctx = new AudioContext();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, ctx.currentTime);
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.3);
+              }
+            } catch(e){}
+            
+            if (Notification.permission === 'granted') {
+              new Notification('Novo Pedido!', { body: `Você recebeu o Pedido #${payload.new.id}` });
+            } else if (Notification.permission !== 'denied') {
+              Notification.requestPermission().then(p => {
+                if (p === 'granted') new Notification('Novo Pedido!', { body: `Você recebeu o Pedido #${payload.new.id}` });
+              });
+            }
+          }
+        }
+      }).subscribe();
+      
+    return () => { supabase.removeChannel(channel); };
+  }, [profile]);
 
   const fetchDeliverymen = async () => {
     const { data } = await supabase.from('profiles').select('id, name, role').eq('role', 'entregador');
@@ -49,6 +88,18 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
   const updateDeliveryman = async (id: number, deliverymanId: string | null) => {
     const { error } = await supabase.from('orders').update({ deliveryman_id: deliverymanId }).eq('id', id);
     if (!error) fetchOrders();
+  };
+
+  const handleUpdateManualLink = async (customerId: number) => {
+    const link = prompt("Cole o link do Google Maps para este cliente:");
+    if (!link) return;
+    try {
+      const { error } = await supabase.rpc('update_customer_map_link', { p_customer_id: customerId, p_link: link });
+      if (error) alert("Erro ao salvar link: " + error.message);
+      else fetchOrders();
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const fetchProducts = async () => {
@@ -73,7 +124,7 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
 
     if (data) {
       const formattedData = data.map((o: any) => {
-        // Find latest location if any
+        // Find latest unique location (just 1)
         let latestLocation = null;
         if (o.customer?.customer_locations?.length > 0) {
           const locs = o.customer.customer_locations.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -241,10 +292,9 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
               }
             },
             (error) => {
-              alert("Não foi possível capturar o GPS do cliente: " + error.message);
               console.warn("Não foi possível capturar a localização:", error.message);
             },
-            { enableHighAccuracy: true, timeout: 15000 }
+            { enableHighAccuracy: true, timeout: 20000, maximumAge: Infinity }
           );
         }
       }
@@ -498,7 +548,7 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
                   </div>
                   <p className="text-zinc-600 dark:text-zinc-400 font-medium break-words">{order.customer_name || 'Consumidor Final'}</p>
 
-                  {(order.customer_address || order.customer_phone || order.customer_google_maps_link || order.customer_location) && (
+                  {(order.customer_address || order.customer_phone || order.customer_google_maps_link || order.customer_location || order.customer_id) && (
                     <div className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 flex flex-col gap-2">
                       {order.customer_address && <span>📍 {order.customer_address}</span>}
                       
@@ -532,12 +582,22 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-bold text-xs flex items-center gap-1 bg-indigo-50 dark:bg-indigo-900/20 px-2 py-1 rounded-lg border border-indigo-200 dark:border-indigo-800"
-                            title="Abrir GPS Salvo"
+                            title="Abrir MAPS"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            📍 Rota (GPS Salvo)
+                            🗺️ MAPS
                           </a>
                         ) : null}
+
+                        {order.customer_id && profile?.role === 'entregador' && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleUpdateManualLink(order.customer_id!); }}
+                            className="text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700 transition-colors ml-auto"
+                            title="Inserir link manual do Maps"
+                          >
+                            ✏️ Add Link Maps
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}
