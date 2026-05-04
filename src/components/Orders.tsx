@@ -67,17 +67,28 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
             } catch(e){}
             
             if (Notification.permission === 'granted') {
-              new Notification('Novo Pedido!', { body: `Você recebeu o Pedido #${payload.new.id}` });
+              const n = new Notification('Novo Pedido!', { body: `Você recebeu o Pedido #${payload.new.id}` });
+              n.onclick = () => window.focus();
             } else if (Notification.permission !== 'denied') {
               Notification.requestPermission().then(p => {
-                if (p === 'granted') new Notification('Novo Pedido!', { body: `Você recebeu o Pedido #${payload.new.id}` });
+                if (p === 'granted') {
+                  const n = new Notification('Novo Pedido!', { body: `Você recebeu o Pedido #${payload.new.id}` });
+                  n.onclick = () => window.focus();
+                }
               });
             }
           }
         }
       }).subscribe();
       
-    return () => { supabase.removeChannel(channel); };
+    const fallbackInterval = setInterval(() => {
+      fetchOrders();
+    }, 10000);
+      
+    return () => { 
+      supabase.removeChannel(channel); 
+      clearInterval(fallbackInterval);
+    };
   }, [profile]);
 
   const fetchDeliverymen = async () => {
