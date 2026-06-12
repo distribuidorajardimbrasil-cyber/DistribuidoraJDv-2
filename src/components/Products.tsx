@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, LineChart, Line, PieChart as RechartsPieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useData } from '../context/DataContext';
 
 const DEFAULT_CATEGORIES: Category[] = [
   { id: 1, name: 'Gás', emoji: '📦' },
@@ -14,7 +15,7 @@ const DEFAULT_CATEGORIES: Category[] = [
 ];
 
 export default function Products() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const { categories, products, refreshCategories, refreshProducts } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
@@ -22,7 +23,6 @@ export default function Products() {
   const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [isProductListModalOpen, setIsProductListModalOpen] = useState(false);
-  const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -45,7 +45,6 @@ export default function Products() {
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterProduct, setFilterProduct] = useState<string>('all');
 
-
   const [formData, setFormData] = useState({
     name: '',
     category: '',
@@ -55,31 +54,19 @@ export default function Products() {
     stock_min: 5
   });
 
+  const activeCategories = categories.length > 0 ? categories : DEFAULT_CATEGORIES;
+
   useEffect(() => {
-    fetchProducts();
-    fetchCategories();
-  }, []);
+    if (!isEditMode && !formData.category && activeCategories.length > 0) {
+      setFormData(prev => ({ ...prev, category: activeCategories[0].name }));
+    }
+  }, [categories, isEditMode, formData.category]);
 
   useEffect(() => {
     if (activeTab === 'reports') {
       fetchStockMovements();
     }
   }, [activeTab, reportPeriod, selectedDate, filterCategory, filterProduct]);
-
-  const fetchCategories = async () => {
-    try {
-      const { data } = await supabase.from('categories').select('*').order('name');
-      if (data && data.length > 0) {
-        setCategories(data as Category[]);
-        // Only set default category if one isn't already selected in the form
-        if (!isEditMode && !formData.category) {
-          setFormData(prev => ({ ...prev, category: data[0].name }));
-        }
-      }
-    } catch (e) {
-      console.error("Error fetching categories, using defaults", e);
-    }
-  };
 
   const handleCategorySubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -88,16 +75,16 @@ export default function Products() {
     try {
       let result;
       if (isCategoryEditMode && selectedCategory) {
-        result = await supabase.from('categories').update(categoryFormData).eq('id', selectedCategory.id);
+        result = await (supabase.from('categories') as any).update(categoryFormData).eq('id', selectedCategory.id);
       } else {
-        result = await supabase.from('categories').insert([categoryFormData]);
+        result = await (supabase.from('categories') as any).insert([categoryFormData]);
       }
 
       if (result.error) {
         setCategoryError(result.error.message);
         console.error("Erro ao salvar categoria:", result.error.message);
       } else {
-        await fetchCategories();
+        await refreshCategories();
         setIsCategoryEditMode(false);
         setSelectedCategory(null);
         setCategoryFormData({ name: '', emoji: '📦' });
@@ -114,27 +101,12 @@ export default function Products() {
   };
 
   const deleteCategory = async (id: number) => {
-    await supabase.from('categories').delete().eq('id', id);
-    fetchCategories();
+    await (supabase.from('categories') as any).delete().eq('id', id);
+    refreshCategories();
   };
 
   const getCategoryEmoji = (categoryName: string) => {
-    return categories.find(c => c.name === categoryName)?.emoji || '📦';
-  };
-
-  const fetchProducts = async () => {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('is_active', true);
-
-    if (!error && data) {
-      setProducts(data as Product[]);
-    } else if (error) {
-      // Fallback in case the is_active column doesn't exist yet
-      const { data: allData } = await supabase.from('products').select('*');
-      if (allData) setProducts(allData as Product[]);
-    }
+    return activeCategories.find(c => c.name === categoryName)?.emoji || '📦';
   };
 
   const getReportDateRange = () => {
@@ -155,9 +127,9 @@ export default function Products() {
     const startStr = start.toISOString();
     const endStr = end.toISOString();
 
-    const { data: movements } = await supabase
-      .from('stock_movements')
-      .select('*, product:products(id, name, category)')
+    const { data: movements } = await (supabase
+      .from('stock_movements') as any)
+      .select('id, type, quantity, created_at, product:products(id, name, category)')
       .gte('created_at', startStr)
       .lte('created_at', endStr)
       .order('created_at', { ascending: false });
@@ -224,23 +196,23 @@ export default function Products() {
     e.preventDefault();
 
     if (isEditMode && selectedProduct) {
-      const { error } = await supabase
-        .from('products')
+      const { error } = await (supabase
+        .from('products') as any)
         .update(formData)
         .eq('id', selectedProduct.id);
 
       if (!error) {
         setIsModalOpen(false);
-        fetchProducts();
+        refreshProducts();
       }
     } else {
-      const { error } = await supabase
-        .from('products')
+      const { error } = await (supabase
+        .from('products') as any)
         .insert([formData]);
 
       if (!error) {
         setIsModalOpen(false);
-        fetchProducts();
+        refreshProducts();
       }
     }
   };
@@ -249,8 +221,8 @@ export default function Products() {
     if (!selectedProduct) return;
 
     console.log('Attempting to delete product:', selectedProduct.id);
-    const { error } = await supabase
-      .from('products')
+    const { error } = await (supabase
+      .from('products') as any)
       .delete()
       .eq('id', selectedProduct.id);
 
@@ -267,7 +239,7 @@ export default function Products() {
     } else {
       console.log('Delete successful');
       setIsDeleteModalOpen(false);
-      fetchProducts();
+      refreshProducts();
     }
   };
 
@@ -277,31 +249,31 @@ export default function Products() {
 
     try {
       // 1. Delete all order items linked to this product
-      const { error: itemsError } = await supabase
-        .from('order_items')
+      const { error: itemsError } = await (supabase
+        .from('order_items') as any)
         .delete()
         .eq('product_id', selectedProduct.id);
 
       if (itemsError) throw itemsError;
 
       // 1b. Delete all stock movements linked to this product
-      const { error: moveError } = await supabase
-        .from('stock_movements')
+      const { error: moveError } = await (supabase
+        .from('stock_movements') as any)
         .delete()
         .eq('product_id', selectedProduct.id);
 
       if (moveError) throw moveError;
 
       // 2. Finally delete the product
-      const { error } = await supabase
-        .from('products')
+      const { error } = await (supabase
+        .from('products') as any)
         .delete()
         .eq('id', selectedProduct.id);
 
       if (error) throw error;
 
       setIsConflictModalOpen(false);
-      fetchProducts();
+      refreshProducts();
     } catch (err: any) {
       console.error('Force delete error:', err);
       console.error('Force delete error:', err.message);
@@ -312,14 +284,14 @@ export default function Products() {
 
   const archiveProduct = async () => {
     if (!selectedProduct) return;
-    const { error } = await supabase
-      .from('products')
+    const { error } = await (supabase
+      .from('products') as any)
       .update({ is_active: false })
       .eq('id', selectedProduct.id);
 
     if (!error) {
       setIsConflictModalOpen(false);
-      fetchProducts();
+      refreshProducts();
     } else {
       console.error('Erro ao arquivar:', error.message);
     }
@@ -330,7 +302,7 @@ export default function Products() {
     setSelectedProduct(null);
     setFormData({
       name: '',
-      category: categories.length > 0 ? categories[0].name : '',
+      category: activeCategories.length > 0 ? activeCategories[0].name : '',
       price_sell: 0,
       price_cost: 0,
       stock_quantity: 0,
@@ -360,15 +332,15 @@ export default function Products() {
     const newStock = (selectedProduct.stock_quantity || 0) + stockAmount;
 
     // 1. Update stock
-    const { error: updateError } = await supabase
-      .from('products')
+    const { error: updateError } = await (supabase
+      .from('products') as any)
       .update({ stock_quantity: newStock })
       .eq('id', selectedProduct.id);
 
     if (!updateError) {
       // 2. Register movement
-      await supabase
-        .from('stock_movements')
+      await (supabase
+        .from('stock_movements') as any)
         .insert([{
           product_id: selectedProduct.id,
           type: 'in',
@@ -377,7 +349,7 @@ export default function Products() {
         }]);
 
       setIsStockModalOpen(false);
-      fetchProducts();
+      refreshProducts();
       setStockAmount(0);
     }
   };
@@ -607,7 +579,7 @@ export default function Products() {
                   className="bg-transparent border-none outline-none font-bold text-zinc-700 dark:text-zinc-300 cursor-pointer px-3 text-sm border-r border-zinc-200 dark:border-zinc-800"
                 >
                   <option value="all">Todas as Categorias</option>
-                  {categories.map(cat => (
+                  {activeCategories.map(cat => (
                     <option key={cat.id} value={cat.name}>{cat.name}</option>
                   ))}
                 </select>
@@ -827,7 +799,7 @@ export default function Products() {
                   onChange={e => setFormData({ ...formData, category: e.target.value })}
                 >
                   <option value="" disabled>Selecione uma categoria</option>
-                  {categories.map(cat => (
+                  {activeCategories.map(cat => (
                     <option key={cat.id} value={cat.name}>
                       {cat.emoji} {cat.name}
                     </option>
@@ -957,7 +929,7 @@ export default function Products() {
             )}
 
             <div className="flex-1 overflow-y-auto space-y-4 mb-6 pr-2">
-              {categories.map(cat => (
+              {activeCategories.map(cat => (
                 <div key={cat.id} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-950 rounded-2xl border border-zinc-100 dark:border-zinc-800/50">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{cat.emoji}</span>

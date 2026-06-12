@@ -2,6 +2,7 @@ import { useState, useEffect, FormEvent } from 'react';
 import { Users, Plus, Search, Phone, MapPin, History, Star, Pencil, Trash2, ShoppingBag, X, ShieldAlert, ChevronDown, ChevronUp } from 'lucide-react';
 import { Customer, Order, Category } from '../types';
 import { supabase } from '../lib/supabase';
+import { useData } from '../context/DataContext';
 
 const DEFAULT_CATEGORIES: Category[] = [
   { id: 1, name: 'Gás', emoji: '📦' },
@@ -25,7 +26,7 @@ export default function Customers() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
-  const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
+  const { categories, refreshProducts } = useData();
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -37,23 +38,16 @@ export default function Customers() {
 
   useEffect(() => {
     fetchCustomers();
-    fetchCategories();
   }, []);
-
-  const fetchCategories = async () => {
-    const { data } = await supabase.from('categories').select('*');
-    if (data) setCategories(data);
-  };
 
   const getEmoji = (catName: string) => {
     return categories.find(c => c.name === catName)?.emoji || '📦';
   };
 
   const fetchCustomers = async () => {
-    // @ts-ignore
-    const { data, error } = await supabase
-      .from('customers')
-      .select('*')
+    const { data, error } = await (supabase
+      .from('customers') as any)
+      .select('id, name, address, phone, notes, loyalty_count, google_maps_link, is_active')
       .eq('is_active', true)
       .order('name');
 
@@ -61,7 +55,7 @@ export default function Customers() {
       setCustomers(data as Customer[]);
     } else if (error) {
       // Fallback in case the is_active column doesn't exist yet
-      const { data: allData } = await supabase.from('customers').select('*').order('name');
+      const { data: allData } = await (supabase.from('customers') as any).select('id, name, address, phone, notes, loyalty_count, google_maps_link').order('name');
       if (allData) setCustomers(allData as Customer[]);
     }
   };
@@ -70,9 +64,9 @@ export default function Customers() {
     const { data } = await supabase
       .from('orders')
       .select(`
-        *,
+        id, created_at, payment_method, delivery_status, total_amount, payment_status,
         order_items (
-          *,
+          id, quantity, price_at_time,
           product:products (
             name,
             category
@@ -171,7 +165,7 @@ export default function Customers() {
       // 3. Subtract stock of a generic "Água 20L" if available
       const { data: waterProd } = await supabase
         .from('products')
-        .select('*')
+        .select('id, stock_quantity')
         .or('category.eq."Água 20L",name.ilike."%água 20l%"')
         .limit(1)
         .single();
@@ -191,6 +185,7 @@ export default function Customers() {
 
       setIsRedeemModalOpen(false);
       fetchCustomers();
+      refreshProducts();
     } catch (err) {
       console.error("Erro ao resgatar brinde:", err);
     } finally {

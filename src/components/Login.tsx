@@ -85,7 +85,7 @@ export default function Login({ onLogin }: LoginProps) {
     const fetchAndSetProfile = async (userId: string) => {
         const { data, error } = await supabase
             .from('profiles')
-            .select('*')
+            .select('id, name, role')
             .eq('id', userId)
             .single();
 

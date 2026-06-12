@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ShoppingCart, Search, Clock, Truck, CheckCircle2, MoreVertical, Filter, Trash2, ShieldAlert, Edit2, Plus, Minus, X } from 'lucide-react';
 import { Profile, Order, Category, Product } from '../types';
 import { supabase } from '../lib/supabase';
+import { useData } from '../context/DataContext';
 
 const DEFAULT_CATEGORIES: Category[] = [
   { id: 1, name: 'Gás', emoji: '📦' },
@@ -19,12 +20,11 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState(isFinanceMode ? 'Pendente' : 'Ativos');
-  const [categories, setCategories] = useState<Category[]>([]);
+  const { categories, products, deliverymen, refreshProducts } = useData();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const [products, setProducts] = useState<Product[]>([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [editCart, setEditCart] = useState<{ product: Product, quantity: number, customPrice: number | string }[]>([]);
@@ -32,7 +32,6 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
   const [productSearch, setProductSearch] = useState('');
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editManualTotal, setEditManualTotal] = useState<number>(0);
-  const [deliverymen, setDeliverymen] = useState<Profile[]>([]);
   const [showNotifPrompt, setShowNotifPrompt] = useState(false);
 
   useEffect(() => {
@@ -41,9 +40,6 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
     }
 
     fetchOrders();
-    fetchCategories();
-    fetchProducts();
-    fetchDeliverymen();
 
     const channel = supabase.channel('orders_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
@@ -86,13 +82,8 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
         }
       }).subscribe();
       
-    const fallbackInterval = setInterval(() => {
-      fetchOrders();
-    }, 10000);
-      
     return () => { 
       supabase.removeChannel(channel); 
-      clearInterval(fallbackInterval);
     };
   }, [profile]);
 
@@ -118,11 +109,6 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
     } catch(e) {}
   };
 
-  const fetchDeliverymen = async () => {
-    const { data } = await supabase.from('profiles').select('id, name, role').eq('role', 'entregador');
-    if (data) setDeliverymen(data as Profile[]);
-  };
-
   const updateDeliveryman = async (id: number, deliverymanId: string | null) => {
     const { error } = await supabase.from('orders').update({ deliveryman_id: deliverymanId }).eq('id', id);
     if (!error) fetchOrders();
@@ -132,22 +118,12 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
     const link = prompt("Cole o link do Google Maps para este cliente:");
     if (!link) return;
     try {
-      const { error } = await supabase.rpc('update_customer_map_link', { p_customer_id: customerId, p_link: link });
+      const { error } = await (supabase as any).rpc('update_customer_map_link', { p_customer_id: customerId, p_link: link });
       if (error) alert("Erro ao salvar link: " + error.message);
       else fetchOrders();
     } catch (e) {
       console.error(e);
     }
-  };
-
-  const fetchProducts = async () => {
-    const { data } = await supabase.from('products').select('*');
-    if (data) setProducts(data as Product[]);
-  };
-
-  const fetchCategories = async () => {
-    const { data } = await supabase.from('categories').select('*');
-    if (data) setCategories(data);
   };
 
   const getEmoji = (catName: string) => {
@@ -157,7 +133,17 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
   const fetchOrders = async () => {
     const { data } = await supabase
       .from('orders')
-      .select('*, customer:customers(name, address, phone, notes, google_maps_link, customer_locations(latitude, longitude, created_at)), items:order_items(id, product_id, quantity, price_at_time, product:products(name, category, price_sell, stock_quantity))')
+      .select(`
+        id, customer_id, total_amount, net_amount, payment_method, payment_status, delivery_status, deliveryman_id, notes, created_at,
+        customer:customers(
+          name, address, phone, notes, google_maps_link,
+          customer_locations(latitude, longitude, created_at)
+        ),
+        items:order_items(
+          id, product_id, quantity, price_at_time,
+          product:products(name, category, price_sell, stock_quantity)
+        )
+      `)
       .order('created_at', { ascending: false });
 
     if (data) {
@@ -199,7 +185,7 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
       return;
     }
 
-    const { data: order } = await supabase.from('orders').select('*').eq('id', id).single();
+    const { data: order } = await supabase.from('orders').select('id, payment_status, customer_id, total_amount, net_amount').eq('id', id).single();
     if (!order) return;
 
     if (type === 'payment') {
@@ -316,7 +302,7 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
           navigator.geolocation.getCurrentPosition(
             async (position) => {
               try {
-                const { error: insertError } = await supabase.from('customer_locations').insert([{
+                const { error: insertError } = await (supabase as any).from('customer_locations').insert([{
                   customer_id: order.customer_id,
                   order_id: order.id,
                   latitude: position.coords.latitude,
@@ -339,7 +325,12 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
     }
 
     const { error } = await supabase.from('orders').update(updates).eq('id', id);
-    if (!error) fetchOrders();
+    if (!error) {
+      fetchOrders();
+      if (type === 'payment') {
+        refreshProducts();
+      }
+    }
   };
 
   const handleDeleteOrder = async () => {
@@ -401,6 +392,9 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
       if (!error) {
         setIsDeleteModalOpen(false);
         fetchOrders();
+        if (selectedOrder.payment_status === 'Pago') {
+          refreshProducts();
+        }
       }
     } catch (err) {
       console.error("Erro ao excluir pedido:", err);
@@ -456,6 +450,7 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
 
       setIsEditModalOpen(false);
       fetchOrders();
+      refreshProducts();
     } catch (err) {
       console.error("Erro ao editar pedido:", err);
     } finally {

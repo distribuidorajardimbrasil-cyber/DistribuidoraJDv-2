@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   LayoutDashboard,
   Package,
@@ -19,6 +19,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { Profile } from './types';
 import { supabase } from './lib/supabase';
+import { DataProvider } from './context/DataContext';
 
 // Components
 import Dashboard from './components/Dashboard';
@@ -72,13 +73,30 @@ export default function App() {
       const checkSession = async () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id as any).single();
+          const { data } = await supabase.from('profiles').select('id, name, role').eq('id', session.user.id as any).single();
           if (data) setProfile(data as any as Profile);
         }
       };
       checkSession();
     }
   }, [profile]);
+
+  const lastLocationUpdate = useRef<{ time: number; lat: number; lng: number } | null>(null);
+
+  const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371e3; // meters
+    const phi1 = lat1 * Math.PI / 180;
+    const phi2 = lat2 * Math.PI / 180;
+    const deltaPhi = (lat2 - lat1) * Math.PI / 180;
+    const deltaLambda = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+              Math.cos(phi1) * Math.cos(phi2) *
+              Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // in meters
+  };
 
   // Track location if entregador
   useEffect(() => {
@@ -87,15 +105,41 @@ export default function App() {
     if (profile?.role === 'entregador' && 'geolocation' in navigator) {
       watchId = navigator.geolocation.watchPosition(
         async (position) => {
-          try {
-            await supabase.from('deliveryman_locations').upsert({
-              deliveryman_id: profile.id,
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-              updated_at: new Date().toISOString()
-            });
-          } catch (error) {
-            console.error('Erro ao atualizar localização:', error);
+          const now = Date.now();
+          const currentLat = position.coords.latitude;
+          const currentLng = position.coords.longitude;
+          
+          let shouldUpdate = false;
+          
+          if (!lastLocationUpdate.current) {
+            shouldUpdate = true;
+          } else {
+            const timeDiff = now - lastLocationUpdate.current.time;
+            const distance = getDistance(
+              lastLocationUpdate.current.lat,
+              lastLocationUpdate.current.lng,
+              currentLat,
+              currentLng
+            );
+            
+            // 30 seconds (30000 ms) or 50 meters
+            if (timeDiff >= 30000 || distance >= 50) {
+              shouldUpdate = true;
+            }
+          }
+
+          if (shouldUpdate) {
+            try {
+              await (supabase as any).from('deliveryman_locations').upsert({
+                deliveryman_id: profile.id,
+                latitude: currentLat,
+                longitude: currentLng,
+                updated_at: new Date().toISOString()
+              });
+              lastLocationUpdate.current = { time: now, lat: currentLat, lng: currentLng };
+            } catch (error) {
+              console.error('Erro ao atualizar localização:', error);
+            }
           }
         },
         (error) => {
@@ -178,143 +222,145 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col md:flex-row font-sans text-zinc-900 dark:text-zinc-50">
-      {/* Mobile Header */}
-      <div className="md:hidden bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 p-4 flex items-center justify-between sticky top-0 z-50">
-        <img src="/logo.png" alt="Distribuidora JD" className="h-12 w-auto object-contain mix-blend-multiply" />
-        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:bg-zinc-800/50 rounded-lg">
-          {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
-      </div>
+    <DataProvider>
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col md:flex-row font-sans text-zinc-900 dark:text-zinc-50">
+        {/* Mobile Header */}
+        <div className="md:hidden bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 p-4 flex items-center justify-between sticky top-0 z-50">
+          <img src="/logo.png" alt="Distribuidora JD" className="h-12 w-auto object-contain mix-blend-multiply" />
+          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:bg-zinc-800/50 rounded-lg">
+            {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
 
-      {/* Sidebar - Hide entirely on desktop if Entregador, but we need navigation still. Let's keep a minimal one. */}
-      {(!isAdmin && window.innerWidth >= 768) ? (
-        <aside className="w-16 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col items-center py-6 gap-6">
-          <img src="/logo.png" alt="JD" className="w-12 h-12 object-contain mix-blend-multiply" />
-          <div className="mt-auto flex flex-col gap-2">
-            <button onClick={toggleDarkMode} title="Alternar Tema" className="p-3 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:text-zinc-50 hover:bg-zinc-50 dark:bg-zinc-950 rounded-xl transition-colors">
-              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-            <button title="Sair" onClick={handleLogout} className="p-3 text-red-500 dark:text-red-400 hover:bg-red-50 dark:bg-red-900/20 rounded-xl transition-colors">
-              <LogOut size={20} />
-            </button>
-          </div>
-        </aside>
-      ) : (
-        <AnimatePresence>
-          {(isSidebarOpen || window.innerWidth >= 768) && (
-            <motion.aside
-              initial={false}
-              animate={{ x: 0 }} // Simplified for the inline condition below
-              className={`fixed md:static inset-y-0 left-0 w-64 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 z-40 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
-            >
-              <div className="p-6 hidden md:block">
-                <img src="/logo.png" alt="Distribuidora JD" className="h-20 -ml-2 w-auto object-contain mb-1 mix-blend-multiply drop-shadow-sm dark:shadow-none" />
-                <p className="text-xs text-zinc-400 mt-1 uppercase tracking-widest font-semibold">{isAdmin ? 'Gestão Interna' : 'Acesso Entregador'}</p>
-              </div>
+        {/* Sidebar - Hide entirely on desktop if Entregador, but we need navigation still. Let's keep a minimal one. */}
+        {(!isAdmin && window.innerWidth >= 768) ? (
+          <aside className="w-16 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col items-center py-6 gap-6">
+            <img src="/logo.png" alt="JD" className="w-12 h-12 object-contain mix-blend-multiply" />
+            <div className="mt-auto flex flex-col gap-2">
+              <button onClick={toggleDarkMode} title="Alternar Tema" className="p-3 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:text-zinc-50 hover:bg-zinc-50 dark:bg-zinc-950 rounded-xl transition-colors">
+                {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+              </button>
+              <button title="Sair" onClick={handleLogout} className="p-3 text-red-500 dark:text-red-400 hover:bg-red-50 dark:bg-red-900/20 rounded-xl transition-colors">
+                <LogOut size={20} />
+              </button>
+            </div>
+          </aside>
+        ) : (
+          <AnimatePresence>
+            {(isSidebarOpen || window.innerWidth >= 768) && (
+              <motion.aside
+                initial={false}
+                animate={{ x: 0 }} // Simplified for the inline condition below
+                className={`fixed md:static inset-y-0 left-0 w-64 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 z-40 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+              >
+                <div className="p-6 hidden md:block">
+                  <img src="/logo.png" alt="Distribuidora JD" className="h-20 -ml-2 w-auto object-contain mb-1 mix-blend-multiply drop-shadow-sm dark:shadow-none" />
+                  <p className="text-xs text-zinc-400 mt-1 uppercase tracking-widest font-semibold">{isAdmin ? 'Gestão Interna' : 'Acesso Entregador'}</p>
+                </div>
 
-              <nav className="mt-4 px-3 space-y-1">
-                {navItems.map((item) => (
-                  <div key={item.id}>
-                    <button
-                      onClick={() => {
-                        if (item.isExpandable) {
-                          setIsFinanceOpen(!isFinanceOpen);
-                        } else {
-                          setActiveTab(item.id as any);
-                          setIsSidebarOpen(false);
-                        }
-                      }}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 ${
-                        (!item.isExpandable && activeTab === item.id) || (item.isExpandable && activeTab.startsWith('finance-'))
-                        ? (item.primary ? 'bg-emerald-600 text-white shadow-lg dark:shadow-none shadow-emerald-200' : 'bg-zinc-100 dark:bg-zinc-800/50 text-emerald-600 dark:text-emerald-400 font-medium')
-                        : (item.primary ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:bg-emerald-900/40' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:bg-zinc-950 hover:text-zinc-900 dark:text-zinc-50')
-                        }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <item.icon size={20} />
-                        <span>{item.label}</span>
-                      </div>
-                      {item.isExpandable && (
-                        <div className={`transition-transform duration-200 ${isFinanceOpen || activeTab.startsWith('finance-') ? 'rotate-90' : ''}`}>
-                          <ChevronRight size={16} />
+                <nav className="mt-4 px-3 space-y-1">
+                  {navItems.map((item) => (
+                    <div key={item.id}>
+                      <button
+                        onClick={() => {
+                          if (item.isExpandable) {
+                            setIsFinanceOpen(!isFinanceOpen);
+                          } else {
+                            setActiveTab(item.id as any);
+                            setIsSidebarOpen(false);
+                          }
+                        }}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 ${
+                          (!item.isExpandable && activeTab === item.id) || (item.isExpandable && activeTab.startsWith('finance-'))
+                          ? (item.primary ? 'bg-emerald-600 text-white shadow-lg dark:shadow-none shadow-emerald-200' : 'bg-zinc-100 dark:bg-zinc-800/50 text-emerald-600 dark:text-emerald-400 font-medium')
+                          : (item.primary ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:bg-emerald-900/40' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:bg-zinc-950 hover:text-zinc-900 dark:text-zinc-50')
+                          }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <item.icon size={20} />
+                          <span>{item.label}</span>
+                        </div>
+                        {item.isExpandable && (
+                          <div className={`transition-transform duration-200 ${isFinanceOpen || activeTab.startsWith('finance-') ? 'rotate-90' : ''}`}>
+                            <ChevronRight size={16} />
+                          </div>
+                        )}
+                      </button>
+                      
+                      {/* Sub-menu for Financeiro */}
+                      {item.isExpandable && (isFinanceOpen || activeTab.startsWith('finance-')) && (
+                        <div className="mt-1 ml-4 pl-4 border-l-2 border-zinc-100 dark:border-zinc-800/50 space-y-1">
+                          <button
+                            onClick={() => { setActiveTab('finance-overview'); setIsSidebarOpen(false); }}
+                            className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-colors ${activeTab === 'finance-overview' ? 'bg-zinc-100 dark:bg-zinc-800/50 text-emerald-600 dark:text-emerald-400 font-bold' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:bg-zinc-950 hover:text-zinc-900 dark:text-zinc-50'}`}
+                          >
+                            Visão Geral
+                          </button>
+                          <button
+                            onClick={() => { setActiveTab('finance-payments'); setIsSidebarOpen(false); }}
+                            className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-colors ${activeTab === 'finance-payments' ? 'bg-zinc-100 dark:bg-zinc-800/50 text-emerald-600 dark:text-emerald-400 font-bold' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:bg-zinc-950 hover:text-zinc-900 dark:text-zinc-50'}`}
+                          >
+                            Pagamentos Pendentes
+                          </button>
+                          <button
+                            onClick={() => { setActiveTab('finance-rates'); setIsSidebarOpen(false); }}
+                            className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-colors ${activeTab === 'finance-rates' ? 'bg-zinc-100 dark:bg-zinc-800/50 text-emerald-600 dark:text-emerald-400 font-bold' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:bg-zinc-950 hover:text-zinc-900 dark:text-zinc-50'}`}
+                          >
+                            Taxas Maquineta
+                          </button>
                         </div>
                       )}
+                    </div>
+                  ))}
+                </nav>
+
+                <div className="absolute bottom-0 w-full border-t border-zinc-100 dark:border-zinc-800/50 bg-white dark:bg-zinc-900">
+                  <div className="p-4 border-b border-zinc-100 dark:border-zinc-800/50/50 flex justify-center">
+                    <button onClick={toggleDarkMode} className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:text-zinc-50 w-full p-2 rounded-xl hover:bg-zinc-50 dark:bg-zinc-950 transition-colors">
+                      {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+                      <span className="text-sm font-medium">{isDarkMode ? 'Modo Claro' : 'Modo Escuro'}</span>
                     </button>
-                    
-                    {/* Sub-menu for Financeiro */}
-                    {item.isExpandable && (isFinanceOpen || activeTab.startsWith('finance-')) && (
-                      <div className="mt-1 ml-4 pl-4 border-l-2 border-zinc-100 dark:border-zinc-800/50 space-y-1">
-                        <button
-                          onClick={() => { setActiveTab('finance-overview'); setIsSidebarOpen(false); }}
-                          className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-colors ${activeTab === 'finance-overview' ? 'bg-zinc-100 dark:bg-zinc-800/50 text-emerald-600 dark:text-emerald-400 font-bold' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:bg-zinc-950 hover:text-zinc-900 dark:text-zinc-50'}`}
-                        >
-                          Visão Geral
-                        </button>
-                        <button
-                          onClick={() => { setActiveTab('finance-payments'); setIsSidebarOpen(false); }}
-                          className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-colors ${activeTab === 'finance-payments' ? 'bg-zinc-100 dark:bg-zinc-800/50 text-emerald-600 dark:text-emerald-400 font-bold' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:bg-zinc-950 hover:text-zinc-900 dark:text-zinc-50'}`}
-                        >
-                          Pagamentos Pendentes
-                        </button>
-                        <button
-                          onClick={() => { setActiveTab('finance-rates'); setIsSidebarOpen(false); }}
-                          className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-colors ${activeTab === 'finance-rates' ? 'bg-zinc-100 dark:bg-zinc-800/50 text-emerald-600 dark:text-emerald-400 font-bold' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:bg-zinc-950 hover:text-zinc-900 dark:text-zinc-50'}`}
-                        >
-                          Taxas Maquineta
-                        </button>
+                  </div>
+                  <div className="p-6 flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${isAdmin ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400' : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'}`}>
+                        {(profile.name || 'US').trim().substring(0, 2).toUpperCase()}
                       </div>
-                    )}
-                  </div>
-                ))}
-              </nav>
-
-              <div className="absolute bottom-0 w-full border-t border-zinc-100 dark:border-zinc-800/50 bg-white dark:bg-zinc-900">
-                <div className="p-4 border-b border-zinc-100 dark:border-zinc-800/50/50 flex justify-center">
-                  <button onClick={toggleDarkMode} className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:text-zinc-50 w-full p-2 rounded-xl hover:bg-zinc-50 dark:bg-zinc-950 transition-colors">
-                    {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-                    <span className="text-sm font-medium">{isDarkMode ? 'Modo Claro' : 'Modo Escuro'}</span>
-                  </button>
-                </div>
-                <div className="p-6 flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${isAdmin ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400' : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400'}`}>
-                      {(profile.name || 'US').trim().substring(0, 2).toUpperCase()}
+                      <div className="overflow-hidden">
+                        <p className="text-sm font-semibold truncate w-[110px]">{profile.name || 'Usuário'}</p>
+                        <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">{profile.role || 'user'}</p>
+                      </div>
                     </div>
-                    <div className="overflow-hidden">
-                      <p className="text-sm font-semibold truncate w-[110px]">{profile.name || 'Usuário'}</p>
-                      <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">{profile.role || 'user'}</p>
-                    </div>
+                    <button title="Sair" onClick={handleLogout} className="p-2 text-red-500 dark:text-red-400 hover:text-red-700 dark:text-red-400 hover:bg-red-50 dark:bg-red-900/20 rounded-xl transition-colors">
+                      <LogOut size={20} />
+                    </button>
                   </div>
-                  <button title="Sair" onClick={handleLogout} className="p-2 text-red-500 dark:text-red-400 hover:text-red-700 dark:text-red-400 hover:bg-red-50 dark:bg-red-900/20 rounded-xl transition-colors">
-                    <LogOut size={20} />
-                  </button>
                 </div>
-              </div>
-            </motion.aside>
-          )}
-        </AnimatePresence>
-      )}
+              </motion.aside>
+            )}
+          </AnimatePresence>
+        )}
 
-      {/* Main Content */}
-      <main className="flex-1 p-4 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {renderContent()}
-        </motion.div>
-      </main>
+        {/* Main Content */}
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {renderContent()}
+          </motion.div>
+        </main>
 
-      {/* Overlay for mobile sidebar */}
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 md:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
-    </div>
+        {/* Overlay for mobile sidebar */}
+        {isSidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 md:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+      </div>
+    </DataProvider>
   );
 }

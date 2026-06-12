@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
+import { useData } from '../context/DataContext';
 
 // Fix Leaflet's default icon path issues
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -36,23 +37,22 @@ function MapController({ center }: { center: [number, number] | null }) {
 
 export default function LiveMap() {
   const [locations, setLocations] = useState<Record<string, LocationUpdate>>({});
-  const [deliverymen, setDeliverymen] = useState<Record<string, Profile>>({});
+  const [deliverymenDict, setDeliverymenDict] = useState<Record<string, Profile>>({});
   const [selectedCenter, setSelectedCenter] = useState<[number, number] | null>(null);
+  const { deliverymen } = useData();
 
   useEffect(() => {
-    // 1. Fetch deliverymen
-    const fetchDeliverymen = async () => {
-      const { data } = await supabase.from('profiles').select('*').eq('role', 'entregador');
-      if (data) {
-        const dict: Record<string, Profile> = {};
-        data.forEach(d => dict[d.id] = d as Profile);
-        setDeliverymen(dict);
-      }
-    };
+    if (deliverymen) {
+      const dict: Record<string, Profile> = {};
+      deliverymen.forEach(d => dict[d.id] = d);
+      setDeliverymenDict(dict);
+    }
+  }, [deliverymen]);
 
+  useEffect(() => {
     // 2. Fetch initial locations
     const fetchLocations = async () => {
-      const { data } = await supabase.from('deliveryman_locations').select('*');
+      const { data } = await (supabase as any).from('deliveryman_locations').select('deliveryman_id, latitude, longitude, updated_at');
       if (data) {
         const dict: Record<string, LocationUpdate> = {};
         data.forEach(d => dict[d.deliveryman_id] = d as LocationUpdate);
@@ -60,7 +60,6 @@ export default function LiveMap() {
       }
     };
 
-    fetchDeliverymen();
     fetchLocations();
 
     // 3. Subscribe to realtime updates
@@ -78,7 +77,7 @@ export default function LiveMap() {
   }, []);
 
   const defaultCenter: [number, number] = [-15.793889, -47.882778]; // Default to Brasilia
-  const validLocations = Object.values(locations).filter(loc => loc.latitude && loc.longitude);
+  const validLocations = (Object.values(locations) as LocationUpdate[]).filter(loc => loc.latitude && loc.longitude);
   
   const mapCenter = validLocations.length > 0 
     ? [validLocations[0].latitude, validLocations[0].longitude] as [number, number]
@@ -104,7 +103,7 @@ export default function LiveMap() {
               >
                 <div>
                   <span className="font-bold text-zinc-900 dark:text-zinc-50 block group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                    {deliverymen[loc.deliveryman_id]?.name || 'Entregador'}
+                    {deliverymenDict[loc.deliveryman_id]?.name || 'Entregador'}
                   </span>
                   <span className="text-[10px] text-zinc-400 font-medium">
                     {new Date(loc.updated_at).toLocaleTimeString('pt-BR')}
@@ -130,7 +129,7 @@ export default function LiveMap() {
             {validLocations.map((loc) => (
               <Marker key={loc.deliveryman_id} position={[loc.latitude, loc.longitude]}>
                 <Popup>
-                  <div className="font-bold text-zinc-900">{deliverymen[loc.deliveryman_id]?.name || 'Entregador'}</div>
+                  <div className="font-bold text-zinc-900">{deliverymenDict[loc.deliveryman_id]?.name || 'Entregador'}</div>
                   <div className="text-xs text-zinc-500">
                     Atualizado em: {new Date(loc.updated_at).toLocaleTimeString('pt-BR')}
                   </div>

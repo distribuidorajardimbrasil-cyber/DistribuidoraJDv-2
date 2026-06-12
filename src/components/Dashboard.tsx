@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Product, Order, Category } from '../types';
 import { supabase } from '../lib/supabase';
+import { useData } from '../context/DataContext';
 
 const DEFAULT_CATEGORIES: Category[] = [
   { id: 1, name: 'Gás', emoji: '📦' },
@@ -33,19 +34,18 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   });
   const [lowStock, setLowStock] = useState<Product[]>([]);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
-  const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
+  const { categories, products } = useData();
 
   useEffect(() => {
     fetchStats();
-    fetchLowStock();
     fetchRecentOrders();
-    fetchCategories();
   }, []);
 
-  const fetchCategories = async () => {
-    const { data } = await supabase.from('categories').select('*');
-    if (data) setCategories(data);
-  };
+  useEffect(() => {
+    if (products) {
+      setLowStock(products.filter(p => p.stock_quantity <= (p.stock_min || 0)));
+    }
+  }, [products]);
 
   const getEmoji = (catName: string) => {
     return categories.find(c => c.name === catName)?.emoji || '📦';
@@ -78,7 +78,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     // 1. Transactions for Daily/Monthly totals and expenses (LIMIT to this month)
     const { data: trans } = await supabase
       .from('transactions')
-      .select('*')
+      .select('amount, created_at, type')
       .gte('created_at', startDate)
       .lt('created_at', endDate);
 
@@ -146,17 +146,12 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     }
   };
 
-  const fetchLowStock = async () => {
-    const { data } = await supabase.from('products').select('*');
-    if (data) {
-      setLowStock((data as Product[]).filter(p => p.stock_quantity <= (p.stock_min || 0)));
-    }
-  };
+
 
   const fetchRecentOrders = async () => {
     const { data } = await supabase
       .from('orders')
-      .select('*, customer:customers(name)')
+      .select('id, total_amount, payment_status, created_at, customer:customers(name)')
       .order('created_at', { ascending: false })
       .limit(5);
 

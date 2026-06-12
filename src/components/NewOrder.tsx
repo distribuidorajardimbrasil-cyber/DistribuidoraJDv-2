@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, Plus, Minus, Trash2, User, ShoppingBag, CreditCard, CheckCircle } from 'lucide-react';
 import { Product, Customer, Category, PaymentRate } from '../types';
 import { supabase } from '../lib/supabase';
+import { useData } from '../context/DataContext';
 
 const DEFAULT_CATEGORIES: Category[] = [
   { id: 1, name: 'Gás', emoji: '📦' },
@@ -15,11 +16,10 @@ interface NewOrderProps {
 }
 
 export default function NewOrder({ onComplete }: NewOrderProps) {
-  const [products, setProducts] = useState<Product[]>([]);
+  const { categories, products, refreshProducts } = useData();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
-  const [categories, setCategories] = useState<Category[]>([]);
 
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [cart, setCart] = useState<{ product: Product, quantity: number, customPrice: number | string }[]>([]);
@@ -31,33 +31,21 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
   const [orderNotes, setOrderNotes] = useState('');
 
   useEffect(() => {
-    fetchProducts();
     fetchCustomers();
-    fetchCategories();
     fetchPaymentRates();
   }, []);
 
   const fetchPaymentRates = async () => {
-    const { data } = await supabase.from('payment_rates').select('*');
+    const { data } = await supabase.from('payment_rates').select('id, method_name, rate_percentage');
     if (data) setPaymentRates(data);
-  };
-
-  const fetchCategories = async () => {
-    const { data } = await supabase.from('categories').select('*');
-    if (data) setCategories(data);
   };
 
   const getEmoji = (catName: string) => {
     return categories.find(c => c.name === catName)?.emoji || '📦';
   };
 
-  const fetchProducts = async () => {
-    const { data } = await supabase.from('products').select('*');
-    if (data) setProducts(data as Product[]);
-  };
-
   const fetchCustomers = async () => {
-    const { data } = await supabase.from('customers').select('*');
+    const { data } = await supabase.from('customers').select('id, name, phone, address');
     if (data) setCustomers(data as Customer[]);
   };
 
@@ -202,6 +190,10 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
         amount: netAmount,
         description: `Venda Pedido #${orderId}`
       }]);
+    }
+
+    if (paymentStatus === "Pago") {
+      refreshProducts();
     }
 
     onComplete();

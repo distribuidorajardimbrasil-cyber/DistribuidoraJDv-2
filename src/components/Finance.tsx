@@ -2,6 +2,7 @@ import { useState, useEffect, FormEvent } from 'react';
 import { DollarSign, TrendingUp, TrendingDown, History, Plus, Calendar as CalendarIcon, ArrowUpRight, ArrowDownRight, Trash2, ShieldAlert, Info, X, ShoppingBag, User, BarChart2, Filter } from 'lucide-react';
 import { Transaction, Category, PaymentRate } from '../types';
 import { supabase } from '../lib/supabase';
+import { useData } from '../context/DataContext';
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, isWithinInterval, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -40,21 +41,14 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
   const [period, setPeriod] = useState<Period>('daily');
   const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [filterCategory, setFilterCategory] = useState<string>('all');
-  const [categories, setCategories] = useState<Category[]>([]);
+  const { categories, refreshProducts } = useData();
   const [rates, setRates] = useState<PaymentRate[]>([]);
   const [feeStats, setFeeStats] = useState({ daily: 0, monthly: 0, yearly: 0 });
   const [editingRateId, setEditingRateId] = useState<number | null>(null);
   const [editingRateValue, setEditingRateValue] = useState<number>(0);
   const [categoryQuantities, setCategoryQuantities] = useState({ in: 0, out: 0 });
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
 
-  const fetchCategories = async () => {
-    const { data } = await supabase.from('categories').select('*').order('name');
-    if (data) setCategories(data as Category[]);
-  };
 
   useEffect(() => {
     if (tab === 'overview') {
@@ -66,7 +60,7 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
 
   const fetchRatesData = async () => {
     // 1. Fetch rates
-    const { data: ratesData } = await supabase.from('payment_rates').select('*').order('id');
+    const { data: ratesData } = await supabase.from('payment_rates').select('id, method_name, rate_percentage').order('id');
     if (ratesData) setRates(ratesData);
 
     // 2. Compute fee stats natively applying timezone
@@ -156,7 +150,7 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
 
     const { data: trans } = await supabase
       .from('transactions')
-      .select('*')
+      .select('id, type, amount, description, created_at')
       .gte('created_at', startStr)
       .lte('created_at', endStr)
       .order('created_at', { ascending: false });
@@ -206,15 +200,9 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
       // 1. Filter orders matching category items
       if (orders && orders.length > 0) {
         const orderIds = orders.map(o => o.id);
-        const { data: items } = await supabase
-          .from('order_items')
-          .select('order_id, product_id, quantity, price_at_time, product:products(category, price_cost)')
-          .in('order_id', orderIds)
-          .eq('product.category', filterCategory); // Assuming Supabase joins can filter like this, we'll process in mem to be safe
-
         const { data: allItems } = await supabase
           .from('order_items')
-          .select('*, product:products!inner(category, price_cost)')
+          .select('order_id, product_id, quantity, price_at_time, product:products!inner(category, price_cost)')
           .in('order_id', orderIds)
           .eq('product.category', filterCategory);
 
@@ -304,7 +292,7 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
     if (!error) {
       if (formData.type === 'expense' && formData.category !== 'all' && formData.quantity > 0) {
         // Try to update stock for the first product in this category
-        const { data: prods } = await supabase.from('products').select('*').eq('category', formData.category).limit(1);
+        const { data: prods } = await supabase.from('products').select('id, stock_quantity').eq('category', formData.category).limit(1);
         if (prods && prods.length > 0) {
           const product = prods[0];
           await supabase.from('products').update({ stock_quantity: (product.stock_quantity || 0) + formData.quantity }).eq('id', product.id);
@@ -314,6 +302,7 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
             quantity: formData.quantity,
             reason: `Despesa: ${formData.description}`
           }]);
+          refreshProducts();
         }
       }
 
@@ -350,7 +339,7 @@ export default function Finance({ tab = 'overview' }: FinanceProps) {
 
       const { data: orderData } = await supabase
         .from('orders')
-        .select('*, customer:customers(name), order_items(*, product:products(name, category))')
+        .select('id, total_amount, payment_method, delivery_status, payment_status, notes, customer:customers(name), order_items(id, quantity, price_at_time, product:products(name, category))')
         .eq('id', orderId)
         .single();
 

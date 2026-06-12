@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { Profile, Order } from '../types';
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useData } from '../context/DataContext';
 
 type Period = 'daily' | 'weekly' | 'monthly' | 'all';
 
@@ -14,7 +15,7 @@ interface DeliverymanOrder extends Omit<Order, 'items'> {
 }
 
 export default function Deliverymen() {
-    const [deliverymen, setDeliverymen] = useState<Profile[]>([]);
+    const { categories, deliverymen } = useData();
     const [selectedManId, setSelectedManId] = useState<string>('all');
     const [orders, setOrders] = useState<DeliverymanOrder[]>([]);
     const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
@@ -22,29 +23,13 @@ export default function Deliverymen() {
     const [period, setPeriod] = useState<Period>('daily');
     const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
     const [filterCategory, setFilterCategory] = useState<string>('all');
-    const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
     const [loading, setLoading] = useState(true);
 
     const [summary, setSummary] = useState({ totalOrders: 0, totalItems: 0, totalValue: 0 });
 
     useEffect(() => {
-        fetchDeliverymen();
-        fetchCategories();
-    }, []);
-
-    useEffect(() => {
         fetchHistory();
     }, [selectedManId, period, selectedDate, filterCategory]);
-
-    const fetchCategories = async () => {
-        const { data } = await supabase.from('categories').select('*').order('name');
-        if (data) setCategories(data);
-    };
-
-    const fetchDeliverymen = async () => {
-        const { data } = await supabase.from('profiles').select('id, name, role').eq('role', 'entregador');
-        if (data) setDeliverymen(data as Profile[]);
-    };
 
     const getDateRange = () => {
         if (period === 'all') return null;
@@ -64,7 +49,11 @@ export default function Deliverymen() {
         setLoading(true);
         let query: any = supabase
             .from('orders')
-            .select('*, customer:customers(name, address), items:order_items(quantity, price_at_time, product:products(name, category))')
+            .select(`
+                id, total_amount, payment_method, delivery_status, created_at, deliveryman_id,
+                customer:customers(name, address),
+                items:order_items(quantity, price_at_time, product:products(name, category))
+            `)
             .not('deliveryman_id', 'is', null)
             .order('created_at', { ascending: false });
 

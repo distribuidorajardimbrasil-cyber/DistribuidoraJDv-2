@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { ShieldCheck, Truck, Clock, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
+import { useData } from '../context/DataContext';
 
 export default function Team() {
     const [team, setTeam] = useState<Profile[]>([]);
     const [loading, setLoading] = useState(true);
+    const { refreshDeliverymen } = useData();
 
     useEffect(() => {
         fetchTeam();
@@ -13,7 +15,7 @@ export default function Team() {
 
     const fetchTeam = async () => {
         setLoading(true);
-        const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+        const { data } = await supabase.from('profiles').select('id, name, role, created_at').order('created_at', { ascending: false });
         if (data) setTeam(data as Profile[]);
         setLoading(false);
     };
@@ -27,6 +29,7 @@ export default function Team() {
 
             if (error) throw error;
 
+            refreshDeliverymen();
             fetchTeam();
         } catch (error: any) {
             console.error("Erro ao atualizar cargo: ", error.message);
