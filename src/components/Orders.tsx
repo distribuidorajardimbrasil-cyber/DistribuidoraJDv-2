@@ -136,8 +136,7 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
       .select(`
         id, customer_id, total_amount, net_amount, payment_method, payment_status, delivery_status, deliveryman_id, notes, created_at,
         customer:customers(
-          name, address, phone, notes, google_maps_link,
-          customer_locations(latitude, longitude, created_at)
+          name, address, phone, notes, google_maps_link
         ),
         items:order_items(
           id, product_id, quantity, price_at_time,
@@ -147,34 +146,24 @@ export default function Orders({ profile, isFinanceMode }: OrdersProps) {
       .order('created_at', { ascending: false });
 
     if (data) {
-      const formattedData = data.map((o: any) => {
-        // Find latest unique location (just 1)
-        let latestLocation = null;
-        if (o.customer?.customer_locations?.length > 0) {
-          const locs = o.customer.customer_locations.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-          latestLocation = locs[0];
-        }
-
-        return {
-          ...o,
-          customer_name: o.customer?.name || null,
-          customer_address: o.customer?.address || null,
-          customer_phone: o.customer?.phone || null,
-          customer_notes: o.customer?.notes || null,
-          customer_google_maps_link: o.customer?.google_maps_link || null,
-          customer_location: latestLocation,
-          items: o.items?.map((item: any) => ({
-            id: item.id,
-            product_id: item.product_id,
-            quantity: item.quantity,
-            price_at_time: item.price_at_time,
-            product_name: item.product?.name || 'Produto Desconhecido',
-            product_category: item.product?.category || '',
-            product_stock: item.product?.stock_quantity || 0,
-            product_price: item.product?.price_sell || 0
-          })) || []
-        };
-      });
+      const formattedData = data.map((o: any) => ({
+        ...o,
+        customer_name: o.customer?.name || null,
+        customer_address: o.customer?.address || null,
+        customer_phone: o.customer?.phone || null,
+        customer_notes: o.customer?.notes || null,
+        customer_google_maps_link: o.customer?.google_maps_link || null,
+        items: o.items?.map((item: any) => ({
+          id: item.id,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          price_at_time: item.price_at_time,
+          product_name: item.product?.name || 'Produto Desconhecido',
+          product_category: item.product?.category || '',
+          product_stock: item.product?.stock_quantity || 0,
+          product_price: item.product?.price_sell || 0
+        })) || []
+      }));
       setOrders(formattedData);
     }
   };

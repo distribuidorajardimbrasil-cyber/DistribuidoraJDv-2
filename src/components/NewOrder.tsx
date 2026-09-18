@@ -29,6 +29,7 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
   const [paymentStatus, setPaymentStatus] = useState('Pago');
   const [deliveryStatus, setDeliveryStatus] = useState('Em preparo');
   const [orderNotes, setOrderNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchCustomers();
@@ -83,120 +84,140 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
   const total = cart.reduce((acc, item) => acc + ((Number(item.customPrice) || 0) * item.quantity), 0);
 
   const handleSubmit = async () => {
-    if (cart.length === 0) return;
+    if (cart.length === 0 || !selectedCustomer || isSubmitting) return;
 
-    let netAmount = total;
-    if (paymentMethod === 'Maquineta' && paymentSubMethod) {
-      const rate = paymentRates.find(r => r.method_name === paymentSubMethod)?.rate_percentage || 0;
-      netAmount = total - (total * (rate / 100));
-    }
-    
-    const finalPaymentMethod = paymentMethod === 'Maquineta' && paymentSubMethod 
-      ? `Maquineta - ${paymentSubMethod}` 
-      : paymentMethod;
+    setIsSubmitting(true);
+    try {
+      let netAmount = total;
+      if (paymentMethod === 'Maquineta' && paymentSubMethod) {
+        const rate = paymentRates.find(r => r.method_name === paymentSubMethod)?.rate_percentage || 0;
+        netAmount = total - (total * (rate / 100));
+      }
+      
+      const finalPaymentMethod = paymentMethod === 'Maquineta' && paymentSubMethod 
+        ? `Maquineta - ${paymentSubMethod}` 
+        : paymentMethod;
 
-    // 1. Create Order
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .insert([{
-        customer_id: selectedCustomer?.id || null,
-        total_amount: total,
-        net_amount: netAmount,
-        payment_method: finalPaymentMethod,
-        payment_status: paymentStatus,
-        delivery_status: deliveryStatus,
-        notes: orderNotes
-      }])
-      .select('id')
-      .single();
-
-    if (orderError || !order) {
-      console.error("Erro ao criar pedido:", orderError);
-      return;
-    }
-
-    const orderId = order.id;
-    let water20LCount = 0;
-
-    // 2. Insert items and process stock if paid
-    const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-    const allowedBrandsNormalized = ['GAMBOA', 'INDAIA', 'ITAGY', 'ITAGI', 'JORDAO', 'MAIORCA'];
-
-    for (const item of cart) {
-      await supabase
-        .from('order_items')
+      // 1. Create Order (single fast insert)
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
         .insert([{
-          order_id: orderId,
-          product_id: item.product.id,
-          quantity: item.quantity,
-          price_at_time: Number(item.customPrice) || 0
-        }]);
+          customer_id: selectedCustomer.id,
+          total_amount: total,
+          net_amount: netAmount,
+          payment_method: finalPaymentMethod,
+          payment_status: paymentStatus,
+          delivery_status: deliveryStatus,
+          notes: orderNotes
+        }])
+        .select('id')
+        .single();
 
+      if (orderError || !order) {
+        console.error("Erro ao criar pedido:", orderError);
+        alert("Erro ao criar pedido: " + (orderError?.message || "Tente novamente."));
+        setIsSubmitting(false);
+        return;
+      }
+
+      const orderId = order.id;
+
+      // 2. Prepare bulk order items
+      const orderItemsData = cart.map(item => ({
+        order_id: orderId,
+        product_id: item.product.id,
+        quantity: item.quantity,
+        price_at_time: Number(item.customPrice) || 0
+      }));
+
+      const insertItemsPromise = supabase.from('order_items').insert(orderItemsData);
+
+      // 3. Process stock & loyalty if paid in parallel
       if (paymentStatus === "Pago") {
-        // Stock subtraction
-        await supabase.from('products').update({
-          stock_quantity: (item.product.stock_quantity || 0) - item.quantity
-        }).eq('id', item.product.id);
-
-        // Movement record
-        await supabase.from('stock_movements').insert([{
+        // Bulk stock movements
+        const movementsData = cart.map(item => ({
           product_id: item.product.id,
           type: 'out',
           quantity: item.quantity,
           reason: 'Venda'
+        }));
+        const movementsPromise = supabase.from('stock_movements').insert(movementsData);
+
+        // Product stock subtractions
+        const stockUpdatesPromise = Promise.all(
+          cart.map(item =>
+            supabase.from('products').update({
+              stock_quantity: (item.product.stock_quantity || 0) - item.quantity
+            }).eq('id', item.product.id)
+          )
+        );
+
+        // Water 20L loyalty points calculation
+        const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+        const allowedBrands = ['GAMBOA', 'INDAIA', 'ITAGY', 'ITAGI', 'JORDAO', 'MAIORCA'];
+        
+        let water20LCount = 0;
+        for (const item of cart) {
+          const productName = item.product.name || "";
+          const productCategory = item.product.category || "";
+          const searchString = normalize(`${productName} ${productCategory}`);
+          const isAllowedBrand = allowedBrands.some(brand => searchString.includes(brand));
+          const hasAgua = searchString.includes("AGUA");
+          const has20L =
+            searchString.includes("20L") ||
+            searchString.includes("20 L") ||
+            searchString.includes("20LITROS") ||
+            searchString.includes("20 LITROS");
+
+          if (isAllowedBrand && hasAgua && has20L) {
+            water20LCount += item.quantity;
+          }
+        }
+
+        // Loyalty update if customer selected & has 20L
+        let loyaltyPromise: Promise<any> = Promise.resolve();
+        if (selectedCustomer && water20LCount > 0) {
+          loyaltyPromise = (async () => {
+            const { data: cData } = await supabase
+              .from('customers')
+              .select('loyalty_count')
+              .eq('id', selectedCustomer.id)
+              .single();
+            const currentCount = cData?.loyalty_count || 0;
+            return supabase.from('customers').update({
+              loyalty_count: currentCount + water20LCount
+            }).eq('id', selectedCustomer.id);
+          })();
+        }
+
+        // Financial transaction record
+        const transactionPromise = supabase.from('transactions').insert([{
+          type: 'income',
+          amount: netAmount,
+          description: `Venda Pedido #${orderId}`
         }]);
+
+        // Execute all updates simultaneously
+        await Promise.all([
+          insertItemsPromise,
+          movementsPromise,
+          stockUpdatesPromise,
+          loyaltyPromise,
+          transactionPromise
+        ]);
+
+        refreshProducts();
+      } else {
+        await insertItemsPromise;
       }
 
-      const productName = item.product.name || "";
-      const productCategory = item.product.category || "";
-      const searchString = normalize(`${productName} ${productCategory}`);
-
-      const allowedBrands = ['GAMBOA', 'INDAIA', 'ITAGY', 'ITAGI', 'JORDAO', 'MAIORCA'];
-      const isAllowedBrand = allowedBrands.some(brand => searchString.includes(brand));
-
-      const hasAgua = searchString.includes("AGUA");
-      const has20L =
-        searchString.includes("20L") ||
-        searchString.includes("20 L") ||
-        searchString.includes("20LITROS") ||
-        searchString.includes("20 LITROS");
-
-      const isWater20L = hasAgua && has20L;
-
-      if (isAllowedBrand && isWater20L) {
-        water20LCount += item.quantity;
-      }
+      onComplete();
+    } catch (err) {
+      console.error("Erro inesperado ao finalizar pedido:", err);
+      alert("Ocorreu um erro ao salvar o pedido.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // 3. Loyalty and Transaction (If paid)
-    if (paymentStatus === "Pago") {
-      if (selectedCustomer) {
-        // Stale Data Fix: Fetch latest points first
-        const { data: cData } = await supabase
-          .from('customers')
-          .select('loyalty_count')
-          .eq('id', selectedCustomer.id)
-          .single();
-
-        const currentCount = cData?.loyalty_count || 0;
-
-        await supabase.from('customers').update({
-          loyalty_count: currentCount + water20LCount
-        }).eq('id', selectedCustomer.id);
-      }
-
-      await supabase.from('transactions').insert([{
-        type: 'income',
-        amount: netAmount,
-        description: `Venda Pedido #${orderId}`
-      }]);
-    }
-
-    if (paymentStatus === "Pago") {
-      refreshProducts();
-    }
-
-    onComplete();
   };
 
   const filteredProducts = products.filter(p => (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()));
@@ -414,11 +435,20 @@ export default function NewOrder({ onComplete }: NewOrderProps) {
 
             <button
               onClick={handleSubmit}
-              disabled={cart.length === 0 || !selectedCustomer}
-              className="w-full py-4 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg dark:shadow-none shadow-emerald-100 hover:bg-emerald-700 transition-all disabled:opacity-50 disabled:shadow-none mt-4 flex items-center justify-center gap-2"
+              disabled={cart.length === 0 || !selectedCustomer || isSubmitting}
+              className="w-full py-4 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg dark:shadow-none shadow-emerald-100 hover:bg-emerald-700 transition-all disabled:opacity-50 disabled:shadow-none mt-4 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
             >
-              <CheckCircle size={20} />
-              Finalizar Pedido
+              {isSubmitting ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Salvando Pedido...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={20} />
+                  <span>Finalizar Pedido</span>
+                </>
+              )}
             </button>
           </div>
         </div>

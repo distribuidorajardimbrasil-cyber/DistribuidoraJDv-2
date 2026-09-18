@@ -14,7 +14,8 @@ import {
   ChevronRight,
   Sun,
   Moon,
-  MapPin
+  MapPin,
+  FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Profile } from './types';
@@ -32,10 +33,11 @@ import Login from './components/Login';
 import Team from './components/Team';
 import Deliverymen from './components/Deliverymen';
 import LiveMap from './components/LiveMap';
+import Reports from './components/Reports';
 
 export default function App() {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'customers' | 'orders' | 'finance-overview' | 'finance-payments' | 'finance-rates' | 'new-order' | 'team' | 'deliverymen' | 'live-map'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'customers' | 'orders' | 'finance-overview' | 'finance-payments' | 'finance-rates' | 'new-order' | 'team' | 'deliverymen' | 'live-map' | 'reports'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isFinanceOpen, setIsFinanceOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -193,6 +195,7 @@ export default function App() {
     { id: 'products', label: 'Estoque', icon: Package },
     { id: 'customers', label: 'Clientes', icon: Users },
     { id: 'finance', label: 'Financeiro', icon: DollarSign, isExpandable: true },
+    { id: 'reports', label: 'Relatórios (PDF)', icon: FileText },
     { id: 'team', label: 'Equipe', icon: ShieldAlert },
     { id: 'deliverymen', label: 'Entregadores', icon: Truck },
     { id: 'live-map', label: 'Mapa ao Vivo', icon: MapPin },
@@ -213,6 +216,7 @@ export default function App() {
       case 'finance-overview': return isAdmin ? <Finance tab="overview" /> : null;
       case 'finance-payments': return isAdmin ? <Orders profile={profile} isFinanceMode={true} /> : null;
       case 'finance-rates': return isAdmin ? <Finance tab="rates" /> : null;
+      case 'reports': return isAdmin ? <Reports /> : null;
       case 'new-order': return isAdmin ? <NewOrder onComplete={() => setActiveTab('orders')} /> : null;
       case 'team': return isAdmin ? <Team /> : null;
       case 'deliverymen': return isAdmin ? <Deliverymen /> : null;
